@@ -180,6 +180,7 @@ export interface LoginResponse {
   nombre: string;
   id: number;
   forcePasswordChange: boolean;
+  consultorio?: Consultorio;
 }
 
 export interface RegisterPacienteRequest {
