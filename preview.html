@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SAGE · Sistema de Gestión de Clínica Médica (Vista Previa)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
+  <style>
+    /* Premium Dark Glassmorphic Design System matching sage-frontend/src/index.css */
+    :root {
+      --color-bg: #0a0e1a;
+      --color-bg-elevated: #101828;
+      --color-surface: #1a2235;
+      --color-surface-hover: #212d44;
+      --color-border: #2a3654;
+      --color-border-focus: #4f7df3;
+      --color-primary: #4f7df3;
+      --color-primary-light: #6b93f7;
+      --color-primary-dark: #3a63cc;
+      --color-primary-bg: rgba(79, 125, 243, 0.08);
+      --color-accent: #22d3ee;
+      --color-accent-bg: rgba(34, 211, 238, 0.08);
+      --color-success: #34d399;
+      --color-success-bg: rgba(52, 211, 153, 0.08);
+      --color-warning: #fbbf24;
+      --color-warning-bg: rgba(251, 191, 36, 0.08);
+      --color-danger: #f87171;
+      --color-danger-bg: rgba(248, 113, 113, 0.08);
+      --color-text: #e2e8f0;
+      --color-text-muted: #94a3b8;
+      --color-text-faint: #64748b;
+      --font-family: 'Inter', sans-serif;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --radius-xl: 24px;
+      --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+      --transition-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+      --shadow-glow: 0 0 25px rgba(79, 125, 243, 0.15);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: var(--font-family);
+      background: var(--color-bg);
+      color: var(--color-text);
+      min-height: 100vh;
+      display: flex;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* Ambient glows */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(circle at 15% 15%, rgba(79, 125, 243, 0.08) 0%, transparent 50%),
+        radial-gradient(circle at 85% 85%, rgba(34, 211, 238, 0.06) 0%, transparent 50%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Layout structure */
+    .layout {
+      display: flex;
+      width: 100%;
+      min-height: 100vh;
+      z-index: 1;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 280px;
+      background: var(--color-bg-elevated);
+      border-right: 1px solid var(--color-border);
+      display: flex;
+      flex-direction: column;
+      padding: 24px;
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      left: 0;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 32px;
+    }
+
+    .brand-logo {
+      width: 42px;
+      height: 42px;
+      border-radius: var(--radius-md);
+      background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: white;
+      box-shadow: 0 4px 15px rgba(79, 125, 243, 0.3);
+    }
+
+    .brand-name {
+      font-size: 1.5rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, white, var(--color-primary-light));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: 1.5px;
+    }
+
+    .role-selector-container {
+      margin-bottom: 24px;
+      border-bottom: 1px solid var(--color-border);
+      padding-bottom: 16px;
+    }
+
+    .role-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--color-text-faint);
+      margin-bottom: 8px;
+      font-weight: 700;
+    }
+
+    .select-field {
+      width: 100%;
+      padding: 10px 14px;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      color: white;
+      outline: none;
+      cursor: pointer;
+      font-weight: 500;
+    }
+
+    .select-field:focus {
+      border-color: var(--color-primary);
+    }
+
+    .nav-links {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex: 1;
+    }
+
+    .nav-link {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      border-radius: 8px;
+      color: var(--color-text-muted);
+      text-decoration: none;
+      font-weight: 500;
+      transition: all var(--transition-fast);
+      cursor: pointer;
+    }
+
+    .nav-link:hover,
+    .nav-link.active {
+      background: var(--color-primary-bg);
+      color: var(--color-primary-light);
+    }
+
+    .nav-link.active {
+      color: var(--color-primary);
+      box-shadow: inset 3px 0 0 var(--color-primary);
+      font-weight: 600;
+    }
+
+    /* Main Content */
+    .main-content {
+      flex: 1;
+      margin-left: 280px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 40px;
+      background: rgba(16, 24, 40, 0.8);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--color-border);
+      position: sticky;
+      top: 0;
+    }
+
+    .user-profile {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .avatar {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+    }
+
+    .content-body {
+      padding: 40px;
+      flex: 1;
+    }
+
+    /* Cards & Components */
+    .card {
+      background: rgba(26, 34, 53, 0.6);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      margin-bottom: 24px;
+      transition: all var(--transition-base);
+    }
+
+    .card:hover {
+      border-color: var(--color-border-focus);
+      box-shadow: var(--shadow-glow);
+    }
+
+    .title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all var(--transition-fast);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+      color: white;
+      box-shadow: 0 4px 15px rgba(79, 125, 243, 0.3);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(79, 125, 243, 0.4);
+    }
+
+    .btn-danger {
+      background: linear-gradient(135deg, var(--color-danger), #dc2626);
+      color: white;
+    }
+
+    .btn-success {
+      background: linear-gradient(135deg, var(--color-success), #059669);
+      color: white;
+    }
+
+    .badge {
+      padding: 4px 10px;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .badge-primary {
+      background: var(--color-primary-bg);
+      color: var(--color-primary-light);
+    }
+
+    .badge-success {
+      background: var(--color-success-bg);
+      color: var(--color-success);
+    }
+
+    .badge-warning {
+      background: var(--color-warning-bg);
+      color: var(--color-warning);
+    }
+
+    .badge-danger {
+      background: var(--color-danger-bg);
+      color: var(--color-danger);
+    }
+
+    /* Tables */
+    .table-container {
+      width: 100%;
+      overflow-x: auto;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--color-border);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th {
+      padding: 12px 16px;
+      background: var(--color-bg-elevated);
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      text-align: left;
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    td {
+      padding: 16px;
+      font-size: 0.875rem;
+      border-bottom: 1px solid rgba(42, 54, 84, 0.5);
+    }
+
+    tr:hover td {
+      background: var(--color-primary-bg);
+    }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(8px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .modal-content {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: 32px;
+      width: 90%;
+      max-width: 500px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+
+    .modal-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 20px;
+    }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+
+    .input-group label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--color-text-muted);
+    }
+
+    .input-field {
+      width: 100%;
+      padding: 12px;
+      background: var(--color-bg-elevated);
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      color: white;
+      outline: none;
+    }
+
+    .input-field:focus {
+      border-color: var(--color-primary);
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    /* Sections */
+    .dashboard-section {
+      display: none;
+    }
+
+    .dashboard-section.active {
+      display: block;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .stat-card {
+      background: var(--color-bg-elevated);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .stat-value {
+      font-size: 1.75rem;
+      font-weight: 700;
+    }
+
+    .stat-label {
+      font-size: 0.8rem;
+      color: var(--color-text-muted);
+    }
+  </style>
+</head>
+
+<body>
+  <div class="layout">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-logo">S</div>
+        <div class="brand-name">SAGE</div>
+      </div>
+
+      <div class="role-selector-container">
+        <div class="role-label">Vista de Simulación</div>
+        <select class="select-field" id="roleSelect" onchange="switchRole(this.value)">
+          <option value="paciente">Dashboard Paciente</option>
+          <option value="secretario">Dashboard Secretario</option>
+          <option value="doctor">Dashboard Médico</option>
+          <option value="admin">Admin General</option>
+        </select>
+      </div>
+
+      <ul class="nav-links">
+        <li><a class="nav-link active" onclick="showSubTab('main')">Inicio</a></li>
+        <li><a class="nav-link" id="nav-item-config" onclick="showSubTab('config')">Configuración</a></li>
+      </ul>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <header>
+        <div>
+          <h2 id="viewGreeting">Panel de Paciente</h2>
+        </div>
+        <div class="user-profile">
+          <span class="badge badge-primary" id="roleBadge">Paciente</span>
+          <div class="avatar" id="userAvatar">P</div>
+        </div>
+      </header>
+
+      <div class="content-body">
+
+        <!-- ── PACIENTE SECTION ── -->
+        <section id="sec-paciente" class="dashboard-section active">
+          <div class="title-row">
+            <h3>Mis Citas Médicas</h3>
+            <button class="btn btn-primary" onclick="openModal('solicitarTurnoModal')">Solicitar Turno</button>
+          </div>
+          <div class="card">
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Fecha y Hora</th>
+                    <th>Médico</th>
+                    <th>Especialidad</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody id="pacienteTurnosTable">
+                  <tr>
+                    <td>Mañana, 09:30</td>
+                    <td>Dr. Juan Pérez</td>
+                    <td>Pediatría</td>
+                    <td><span class="badge badge-warning">Asignado</span></td>
+                    <td><button class="btn btn-success" style="padding: 6px 12px; font-size: 0.8rem;"
+                        onclick="confirmarTurnoMock(this)">Confirmar</button></td>
+                  </tr>
+                  <tr>
+                    <td>10/08/2026, 11:00</td>
+                    <td>Dra. Ana Gómez</td>
+                    <td>Cardiología</td>
+                    <td><span class="badge badge-success">Confirmado</span></td>
+                    <td>-</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── SECRETARIO SECTION ── -->
+        <section id="sec-secretario" class="dashboard-section">
+          <div class="stats-grid">
+            <div class="stat-card">
+              <span class="stat-value">12</span>
+              <span class="stat-label">Turnos Confirmados</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-value" style="color: var(--color-danger)">1</span>
+              <span class="stat-label">Urgencias Activas</span>
+            </div>
+          </div>
+          <div class="title-row">
+            <h3>Cola del Día</h3>
+            <button class="btn btn-danger" onclick="openModal('ingresarUrgenciaModal')">Ingresar Urgencia</button>
+          </div>
+          <div class="card">
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Hora</th>
+                    <th>Paciente</th>
+                    <th>Médico</th>
+                    <th>Tipo</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>09:30</td>
+                    <td>Lucas Martínez (24 años)</td>
+                    <td>Dr. Juan Pérez</td>
+                    <td><span class="badge badge-primary">Normal</span></td>
+                    <td>Asignado</td>
+                    <td><button class="btn btn-primary" style="padding: 6px 12px; font-size: 0.8rem;"
+                        onclick="marcarPresenteMock(this)">Check-in</button></td>
+                  </tr>
+                  <tr>
+                    <td>10:00</td>
+                    <td>Marta Gómez (68 años)</td>
+                    <td>Dra. Ana Gómez</td>
+                    <td><span class="badge badge-danger">Urgencia</span></td>
+                    <td><span class="badge badge-warning">Triage Pendiente</span></td>
+                    <td>-</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── DOCTOR SECTION ── -->
+        <section id="sec-doctor" class="dashboard-section">
+          <div class="stats-grid">
+            <div class="stat-card">
+              <span class="stat-value">3</span>
+              <span class="stat-label">Pacientes en Espera</span>
+            </div>
+          </div>
+          <div class="title-row">
+            <h3>Pacientes en Sala de Espera</h3>
+          </div>
+          <div class="card">
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Orden</th>
+                    <th>Paciente</th>
+                    <th>Edad</th>
+                    <th>Clasificación</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>1</td>
+                    <td>Marta Gómez</td>
+                    <td>68 años</td>
+                    <td><span class="badge badge-danger">Urgencia (Sin Clasificar)</span></td>
+                    <td>Pendiente Triage</td>
+                    <td>
+                      <button class="btn btn-danger" style="padding: 6px 12px; font-size: 0.8rem;"
+                        onclick="openModal('priorizarTriageModal')">Triage / Clasificar</button>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>2</td>
+                    <td>Lucas Martínez</td>
+                    <td>24 años</td>
+                    <td>Normal</td>
+                    <td>En Espera</td>
+                    <td>
+                      <button class="btn btn-primary" style="padding: 6px 12px; font-size: 0.8rem;"
+                        onclick="iniciarAtencionMock(this)">Atender</button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── ADMIN SECTION ── -->
+        <section id="sec-admin" class="dashboard-section">
+          <div class="title-row">
+            <h3>Configuración General de Clínicas</h3>
+            <button class="btn btn-primary" onclick="alert('Funcionalidad de creación de consultorios')">Agregar
+              Consultorio</button>
+          </div>
+          <div class="stats-grid">
+            <div class="stat-card">
+              <span class="stat-value">5</span>
+              <span class="stat-label">Consultorios Activos</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-value">24</span>
+              <span class="stat-label">Obras Sociales Soportadas</span>
+            </div>
+          </div>
+          <div class="card">
+            <h4>Consultorios Registrados</h4>
+            <br>
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Código</th>
+                    <th>Nombre</th>
+                    <th>Dirección</th>
+                    <th>Localidad</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>CON-01</td>
+                    <td>Consultorio Central UTN</td>
+                    <td>Rodriguez 273</td>
+                    <td>Mendoza</td>
+                  </tr>
+                  <tr>
+                    <td>CON-02</td>
+                    <td>Clínica del Sol</td>
+                    <td>San Martín 1024</td>
+                    <td>Godoy Cruz</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ── MODAL SOLICITAR TURNO ── -->
+  <div class="modal-overlay" id="solicitarTurnoModal">
+    <div class="modal-content">
+      <h3 class="modal-title">Solicitar Turno Médico</h3>
+      <div class="input-group">
+        <label>Consultorio</label>
+        <select class="input-field">
+          <option>Consultorio Central UTN</option>
+          <option>Clínica del Sol</option>
+        </select>
+      </div>
+      <div class="input-group">
+        <label>Médico</label>
+        <select class="input-field">
+          <option>Dr. Juan Pérez (Pediatría)</option>
+          <option>Dra. Ana Gómez (Cardiología)</option>
+        </select>
+      </div>
+      <div class="input-group">
+        <label>Fecha</label>
+        <input type="date" class="input-field" value="2026-07-30">
+      </div>
+      <div class="input-group">
+        <label>Hora</label>
+        <select class="input-field">
+          <option>09:30</option>
+          <option>10:00</option>
+          <option>10:30</option>
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button class="btn" style="background: var(--color-surface);"
+          onclick="closeModal('solicitarTurnoModal')">Cancelar</button>
+        <button class="btn btn-primary" onclick="crearTurnoMock()">Confirmar Turno</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── MODAL INGRESAR URGENCIA ── -->
+  <div class="modal-overlay" id="ingresarUrgenciaModal">
+    <div class="modal-content">
+      <h3 class="modal-title" style="color: var(--color-danger)">Ingresar Urgencia Médica</h3>
+      <div class="input-group">
+        <label>ID Paciente</label>
+        <input type="number" class="input-field" placeholder="Ingrese el ID" value="103">
+      </div>
+      <div class="input-group">
+        <label>Asignar Médico de Guardia</label>
+        <select class="input-field">
+          <option>Dr. Juan Pérez</option>
+          <option>Dra. Ana Gómez</option>
+        </select>
+      </div>
+      <div class="input-group">
+        <label>Descripción inicial / Síntomas</label>
+        <textarea class="input-field" rows="3" placeholder="Ej. Dolor abdominal fuerte"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="btn" style="background: var(--color-surface);"
+          onclick="closeModal('ingresarUrgenciaModal')">Cancelar</button>
+        <button class="btn btn-danger"
+          onclick="alert('Urgencia ingresada en cola del médico'); closeModal('ingresarUrgenciaModal')">Ingresar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── MODAL PRIORIZAR TRIAGE ── -->
+  <div class="modal-overlay" id="priorizarTriageModal">
+    <div class="modal-content">
+      <h3 class="modal-title">Clasificación de Urgencia (Triage)</h3>
+      <div class="input-group">
+        <label>Nivel de Prioridad</label>
+        <select class="input-field">
+          <option value="1">P1 - Sobreturno Inmediato (Intercalado)</option>
+          <option value="2">P2 - Atender al final del día</option>
+          <option value="3">P3 - No es urgencia (Rechazar/Turno normal)</option>
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button class="btn" style="background: var(--color-surface);"
+          onclick="closeModal('priorizarTriageModal')">Cancelar</button>
+        <button class="btn btn-danger"
+          onclick="alert('Urgencia clasificada exitosamente.'); closeModal('priorizarTriageModal')">Clasificar</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function switchRole(role) {
+      document.querySelectorAll('.dashboard-section').forEach(sec => sec.classList.remove('active'));
+      const activeSec = document.getElementById('sec-' + role);
+      if (activeSec) activeSec.classList.add('active');
+
+      // Update Topbar
+      document.getElementById('viewGreeting').innerText = 'Panel de ' + role.charAt(0).toUpperCase() + role.slice(1);
+      document.getElementById('roleBadge').innerText = role.toUpperCase();
+      document.getElementById('userAvatar').innerText = role.charAt(0).toUpperCase();
+    }
+
+    function openModal(id) {
+      document.getElementById(id).style.display = 'flex';
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).style.display = 'none';
+    }
+
+    function confirmarTurnoMock(btn) {
+      const row = btn.closest('tr');
+      row.cells[3].innerHTML = '<span class="badge badge-success">Confirmado</span>';
+      btn.style.display = 'none';
+      alert('Turno confirmado con éxito.');
+    }
+
+    function marcarPresenteMock(btn) {
+      alert('Paciente marcado como Presente. Se inició la Consulta en estado EN_ESPERA.');
+      btn.disabled = true;
+      btn.innerText = 'Listo';
+    }
+
+    function iniciarAtencionMock(btn) {
+      alert('Atención iniciada. Estado transicionado a EN_CURSO.');
+      btn.closest('tr').cells[4].innerText = 'En Curso';
+      btn.outerHTML = '<button class="btn btn-success" style="padding: 6px 12px; font-size: 0.8rem;" onclick="alert(\'Ficha médica finalizada y guardada en base de datos.\')">Finalizar</button>';
+    }
+
+    function crearTurnoMock() {
+      const table = document.getElementById('pacienteTurnosTable');
+      const newRow = table.insertRow(0);
+      newRow.innerHTML = `
+        <td>Mañana, 10:00</td>
+        <td>Dr. Juan Pérez</td>
+        <td>Pediatría</td>
+        <td><span class="badge badge-warning">Asignado</span></td>
+        <td>-</td>
+      `;
+      closeModal('solicitarTurnoModal');
+      alert('Turno solicitado. Reservado en base de datos.');
+    }
+  </script>
+</body>
+
+</html>
