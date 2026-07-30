@@ -2,6 +2,7 @@ package com.sage.controller;
 
 import com.sage.dto.request.ChangePasswordRequest;
 import com.sage.dto.request.LoginRequest;
+import com.sage.dto.request.RegisterEmpleadoRequest;
 import com.sage.dto.request.RegisterPacienteRequest;
 import com.sage.dto.response.LoginResponse;
 import com.sage.service.AuthService;
@@ -30,6 +31,12 @@ public class AuthController {
     public ResponseEntity<String> registerPaciente(@Valid @RequestBody RegisterPacienteRequest request) {
         authService.registerPaciente(request);
         return ResponseEntity.ok("Paciente registrado exitosamente");
+    }
+
+    @PostMapping("/register-empleado")
+    public ResponseEntity<String> registerEmpleado(@Valid @RequestBody RegisterEmpleadoRequest request) {
+        authService.registerEmpleado(request);
+        return ResponseEntity.ok("Actor / Empleado registrado exitosamente");
     }
 
     @PutMapping("/change-password")

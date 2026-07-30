@@ -4,12 +4,12 @@ import com.sage.config.CustomUserDetails;
 import com.sage.config.JwtService;
 import com.sage.dto.request.ChangePasswordRequest;
 import com.sage.dto.request.LoginRequest;
+import com.sage.dto.request.RegisterEmpleadoRequest;
 import com.sage.dto.request.RegisterPacienteRequest;
 import com.sage.dto.response.LoginResponse;
 import com.sage.model.*;
-import com.sage.repository.EmpleadoRepository;
-import com.sage.repository.ObraSocialRepository;
-import com.sage.repository.PacienteRepository;
+import com.sage.model.enums.Rol;
+import com.sage.repository.*;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -26,16 +26,21 @@ public class AuthService {
     private final EmpleadoRepository empleadoRepository;
     private final PacienteRepository pacienteRepository;
     private final ObraSocialRepository obraSocialRepository;
+    private final ConsultorioRepository consultorioRepository;
+    private final EspecialidadRepository especialidadRepository;
     private final PasswordEncoder passwordEncoder;
 
     public AuthService(AuthenticationManager authenticationManager, JwtService jwtService,
                        EmpleadoRepository empleadoRepository, PacienteRepository pacienteRepository,
-                       ObraSocialRepository obraSocialRepository, PasswordEncoder passwordEncoder) {
+                       ObraSocialRepository obraSocialRepository, ConsultorioRepository consultorioRepository,
+                       EspecialidadRepository especialidadRepository, PasswordEncoder passwordEncoder) {
         this.authenticationManager = authenticationManager;
         this.jwtService = jwtService;
         this.empleadoRepository = empleadoRepository;
         this.pacienteRepository = pacienteRepository;
         this.obraSocialRepository = obraSocialRepository;
+        this.consultorioRepository = consultorioRepository;
+        this.especialidadRepository = especialidadRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -51,7 +56,7 @@ public class AuthService {
                 token,
                 userDetails.getId(),
                 userDetails.getUsername(),
-                userDetails.getUsername(), // O nombre completo si tuviéramos cargado el objeto
+                userDetails.getUsername(),
                 userDetails.getRol().name(),
                 userDetails.getConsultorioId(),
                 userDetails.isForcePasswordChange()
@@ -101,6 +106,60 @@ public class AuthService {
         paciente.setDireccionPaciente(request.getDireccionPaciente());
 
         pacienteRepository.save(paciente);
+    }
+
+    @Transactional
+    public void registerEmpleado(RegisterEmpleadoRequest request) {
+        if (empleadoRepository.findByUsuarioAndFechaHastaEmpleadoIsNull(request.getUsuario()).isPresent() ||
+            pacienteRepository.findByUsuarioAndFechaHoraBajaIsNull(request.getUsuario()).isPresent()) {
+            throw new IllegalArgumentException("El nombre de usuario ya existe");
+        }
+
+        Rol rol = Rol.valueOf(request.getRol().toUpperCase());
+        Consultorio consultorio = consultorioRepository.findAll().stream().findFirst().orElse(null);
+
+        switch (rol) {
+            case SECRETARIO -> {
+                Secretario sec = new Secretario();
+                sec.setUsuario(request.getUsuario());
+                sec.setContrasena(passwordEncoder.encode(request.getContrasena()));
+                sec.setNombreEmpleado(request.getNombreEmpleado());
+                sec.setNroTelefono(request.getNroTelefono());
+                sec.setRol(Rol.SECRETARIO);
+                sec.setConsultorio(consultorio);
+                sec.setForcePasswordChange(false);
+                sec.setCodSecretario("SEC-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
+                empleadoRepository.save(sec);
+            }
+            case DOCTOR -> {
+                Doctor doc = new Doctor();
+                doc.setUsuario(request.getUsuario());
+                doc.setContrasena(passwordEncoder.encode(request.getContrasena()));
+                doc.setNombreEmpleado(request.getNombreEmpleado());
+                doc.setNroTelefono(request.getNroTelefono());
+                doc.setRol(Rol.DOCTOR);
+                doc.setConsultorio(consultorio);
+                doc.setForcePasswordChange(false);
+                doc.setCodDoctor("DOC-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
+                if (request.getCodEspecialidad() != null && !request.getCodEspecialidad().isBlank()) {
+                    especialidadRepository.findByCodEspecialidadAndFechaHastaIsNull(request.getCodEspecialidad())
+                            .ifPresent(doc::setEspecialidad);
+                }
+                empleadoRepository.save(doc);
+            }
+            case ADMIN_CONSULTORIO, ADMIN_GENERAL -> {
+                Empleado emp = new Empleado();
+                emp.setUsuario(request.getUsuario());
+                emp.setContrasena(passwordEncoder.encode(request.getContrasena()));
+                emp.setNombreEmpleado(request.getNombreEmpleado());
+                emp.setNroTelefono(request.getNroTelefono());
+                emp.setRol(rol);
+                emp.setConsultorio(consultorio);
+                emp.setForcePasswordChange(false);
+                empleadoRepository.save(emp);
+            }
+            default -> throw new IllegalArgumentException("Rol no válido para registro");
+        }
     }
 
     @Transactional

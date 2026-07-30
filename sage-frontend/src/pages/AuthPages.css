@@ -1,5 +1,5 @@
 /* ============================================================
-   SAGE — Auth Pages Styles
+   SAGE — Auth Pages Styles (Dark Glassmorphism)
    ============================================================ */
 
 .auth-page {
@@ -10,6 +10,7 @@
   position: relative;
   overflow: hidden;
   background: var(--color-bg);
+  padding: 20px 0;
 }
 
 /* Background animated orbs */
@@ -49,39 +50,74 @@
   position: relative;
   z-index: 1;
   width: 100%;
-  max-width: 420px;
-  background: rgba(26, 34, 53, 0.7);
+  max-width: 460px;
+  background: rgba(26, 34, 53, 0.75);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255,255,255,0.08);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: var(--radius-xl);
-  padding: var(--space-2xl) var(--space-xl);
+  padding: var(--space-xl);
   box-shadow: var(--shadow-lg);
+}
+
+/* Auth Nav Tabs */
+.auth-nav-tabs {
+  display: flex;
+  background: rgba(10, 14, 26, 0.6);
+  border-radius: var(--radius-md);
+  padding: 4px;
+  margin-bottom: var(--space-lg);
+  border: 1px solid var(--color-border);
+}
+
+.auth-tab {
+  flex: 1;
+  padding: 10px 16px;
+  text-align: center;
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all var(--transition-fast);
+}
+
+.auth-tab:hover {
+  color: var(--color-text);
+}
+
+.auth-tab--active {
+  background: var(--color-primary);
+  color: #ffffff !important;
+  box-shadow: var(--shadow-sm);
 }
 
 .auth-brand {
   text-align: center;
-  margin-bottom: var(--space-xl);
+  margin-bottom: var(--space-lg);
 }
 
 .auth-logo {
-  width: 64px;
-  height: 64px;
+  width: 56px;
+  height: 56px;
   border-radius: var(--radius-lg);
   background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
   display: inline-flex;
   align-items: center;
   justify-content: center;
   color: #fff;
-  font-size: 1.75rem;
-  margin-bottom: var(--space-md);
+  font-size: 1.5rem;
+  margin-bottom: var(--space-xs);
   box-shadow: 0 8px 32px rgba(79,125,243,0.3);
 }
 
 .auth-title {
-  font-size: 2rem;
+  font-size: 1.75rem;
   font-weight: 800;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.08em;
   background: linear-gradient(135deg, var(--color-text), var(--color-primary-light));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -89,9 +125,103 @@
 }
 
 .auth-subtitle {
-  font-size: 0.875rem;
+  font-size: 0.85rem;
   color: var(--color-text-muted);
-  margin-top: var(--space-xs);
+  margin-top: 2px;
+}
+
+/* Quick Actors Grid */
+.actors-section {
+  margin-bottom: var(--space-md);
+}
+
+.actors-title {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+  margin-bottom: 8px;
+}
+
+.actors-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 8px;
+}
+
+.actor-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: rgba(16, 24, 40, 0.6);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  text-align: left;
+}
+
+.actor-card:hover {
+  background: rgba(33, 45, 68, 0.8);
+  border-color: var(--actor-accent, var(--color-primary));
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.actor-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--actor-accent, var(--color-primary));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.actor-info {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.actor-name {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.actor-desc {
+  font-size: 0.7rem;
+  color: var(--color-text-faint);
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin: var(--space-md) 0;
+  color: var(--color-text-faint);
+  font-size: 0.75rem;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.auth-divider span {
+  padding: 0 10px;
 }
 
 .auth-form {
@@ -126,34 +256,77 @@
   transition: all var(--transition-fast);
   outline: none;
 }
+
 .auth-input:focus {
   border-color: var(--color-border-focus);
   box-shadow: 0 0 0 3px rgba(79,125,243,0.15);
 }
-.auth-input::placeholder {
-  color: var(--color-text-faint);
-}
 
 .auth-submit {
   width: 100%;
-  margin-top: var(--space-sm);
+  margin-top: var(--space-xs);
 }
 
 .auth-footer {
   text-align: center;
-  margin-top: var(--space-lg);
-  font-size: 0.875rem;
+  margin-top: var(--space-md);
+  font-size: 0.85rem;
   color: var(--color-text-muted);
 }
 
 .auth-footer a {
   color: var(--color-primary);
-  font-weight: 500;
+  font-weight: 600;
 }
 
-/* Register page specific */
+/* Multi-actor register page */
 .auth-container--wide {
-  max-width: 520px;
+  max-width: 580px;
+}
+
+.role-selector {
+  margin-bottom: var(--space-md);
+}
+
+.input-group-label {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  margin-bottom: 8px;
+}
+
+.role-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.role-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-elevated);
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.role-btn:hover {
+  background: var(--color-surface-hover);
+  color: var(--color-text);
+}
+
+.role-btn--active {
+  background: var(--color-primary-bg);
+  border-color: var(--color-primary);
+  color: var(--color-primary-light);
+  font-weight: 600;
 }
 
 .auth-form-grid {
@@ -162,7 +335,8 @@
   gap: var(--space-md);
 }
 
-@media (max-width: 480px) {
+@media (max-width: 520px) {
   .auth-form-grid { grid-template-columns: 1fr; }
-  .auth-container { margin: var(--space-md); }
+  .auth-container { margin: var(--space-sm); padding: var(--space-md); }
+  .actors-grid { grid-template-columns: 1fr 1fr; }
 }

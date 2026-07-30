@@ -1,14 +1,31 @@
 /* ============================================================
    SAGE — Login Page
-   Premium glassmorphism login form
+   Premium glassmorphism login form with actor selector
    ============================================================ */
 import { useState, FormEvent } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { authApi } from '../services/api';
-import { FiActivity, FiUser, FiLock, FiArrowRight } from 'react-icons/fi';
+import { FiActivity, FiUser, FiLock, FiArrowRight, FiShield, FiBriefcase, FiClipboard, FiUserCheck, FiHeart } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import './AuthPages.css';
+
+interface DemoActor {
+  label: string;
+  roleName: string;
+  usuario: string;
+  contrasena: string;
+  icon: JSX.Element;
+  color: string;
+}
+
+const DEMO_ACTORS: DemoActor[] = [
+  { label: 'Admin General', roleName: 'Administrador del sistema', usuario: 'admin', contrasena: 'admin123', icon: <FiShield />, color: '#ec4899' },
+  { label: 'Admin Consultorio', roleName: 'Gestión de clínica', usuario: 'admin_consultorio', contrasena: 'admin123', icon: <FiBriefcase />, color: '#8b5cf6' },
+  { label: 'Secretario', roleName: 'Recepción y turnos', usuario: 'secretario', contrasena: 'admin123', icon: <FiClipboard />, color: '#3b82f6' },
+  { label: 'Doctor', roleName: 'Médico especialista', usuario: 'doctor', contrasena: 'admin123', icon: <FiUserCheck />, color: '#10b981' },
+  { label: 'Paciente', roleName: 'Atención médica', usuario: 'paciente', contrasena: 'admin123', icon: <FiHeart />, color: '#f59e0b' },
+];
 
 export default function LoginPage() {
   const [usuario, setUsuario] = useState('');
@@ -17,11 +34,10 @@ export default function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
+  const handleLoginWithCredentials = async (userStr: string, passStr: string) => {
     setLoading(true);
     try {
-      const data = await authApi.login({ usuario, contrasena });
+      const data = await authApi.login({ usuario: userStr, contrasena: passStr });
       login(data);
       toast.success(`Bienvenido, ${data.nombre}`);
       if (data.forcePasswordChange) {
@@ -30,10 +46,21 @@ export default function LoginPage() {
         navigate('/');
       }
     } catch (err: any) {
-      toast.error(err.response?.data || 'Credenciales inválidas');
+      toast.error(err.response?.data || 'Credenciales inválidas. Verifica que la base de datos tenga los datos cargados.');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    handleLoginWithCredentials(usuario, contrasena);
+  };
+
+  const selectActor = (actor: DemoActor) => {
+    setUsuario(actor.usuario);
+    setContrasena(actor.contrasena);
+    handleLoginWithCredentials(actor.usuario, actor.contrasena);
   };
 
   return (
@@ -44,12 +71,44 @@ export default function LoginPage() {
       <div className="auth-bg-orb auth-bg-orb--3" />
 
       <div className="auth-container animate-fade-in">
+        <div className="auth-nav-tabs">
+          <button className="auth-tab auth-tab--active">Iniciar Sesión</button>
+          <Link to="/registro" className="auth-tab">Registrar Actor</Link>
+        </div>
+
         <div className="auth-brand">
           <div className="auth-logo">
             <FiActivity />
           </div>
           <h1 className="auth-title">SAGE</h1>
           <p className="auth-subtitle">Sistema de Gestión de Clínica Médica</p>
+        </div>
+
+        {/* Quick Actor Selector */}
+        <div className="actors-section">
+          <span className="actors-title">Ingreso rápido por Actor:</span>
+          <div className="actors-grid">
+            {DEMO_ACTORS.map((actor) => (
+              <button
+                key={actor.usuario}
+                type="button"
+                className="actor-card"
+                style={{ '--actor-accent': actor.color } as React.CSSProperties}
+                onClick={() => selectActor(actor)}
+                title={`Ingresar como ${actor.label}`}
+              >
+                <div className="actor-icon">{actor.icon}</div>
+                <div className="actor-info">
+                  <span className="actor-name">{actor.label}</span>
+                  <span className="actor-desc">{actor.usuario}</span>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="auth-divider">
+          <span>o ingresá tus credenciales</span>
         </div>
 
         <form className="auth-form" onSubmit={handleSubmit}>
@@ -63,7 +122,6 @@ export default function LoginPage() {
               value={usuario}
               onChange={(e) => setUsuario(e.target.value)}
               required
-              autoFocus
             />
           </div>
 
@@ -92,7 +150,7 @@ export default function LoginPage() {
         </form>
 
         <p className="auth-footer">
-          ¿No tenés cuenta? <Link to="/registro">Registrate como paciente</Link>
+          ¿Querés registrar un nuevo usuario? <Link to="/registro">Registrar un Actor</Link>
         </p>
       </div>
     </div>

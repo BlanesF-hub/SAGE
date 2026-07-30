@@ -22,7 +22,7 @@ import type {
 
 // ── Base Axios instance ─────────────────────────────
 const api = axios.create({
-  baseURL: '', // uses Vite proxy in dev
+  baseURL: import.meta.env.VITE_API_URL || '', // uses VITE_API_URL in production or Vite proxy in dev
   headers: { 'Content-Type': 'application/json' },
 });
 
@@ -54,6 +54,9 @@ export const authApi = {
 
   registerPaciente: (data: RegisterPacienteRequest) =>
     api.post<string>('/auth/register-paciente', data).then((r) => r.data),
+
+  registerEmpleado: (data: { usuario: string; contrasena: string; nombreEmpleado: string; rol: string; nroTelefono?: string; codEspecialidad?: string }) =>
+    api.post<string>('/auth/register-empleado', data).then((r) => r.data),
 
   changePassword: (oldPassword: string, newPassword: string) =>
     api.put<string>('/auth/change-password', { oldPassword, newPassword }).then((r) => r.data),
