@@ -193,6 +193,7 @@ export interface RegisterPacienteRequest {
   direccionPaciente?: string;
   tipoPaciente: TipoPaciente;
   nroAfiliado?: number;
+  codObraSocial?: string;
   obraSocialId?: number;
   nroBeneficiario?: number;
 }
