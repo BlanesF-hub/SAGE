@@ -56,7 +56,7 @@ public class AuthService {
                 token,
                 userDetails.getId(),
                 userDetails.getUsername(),
-                userDetails.getUsername(),
+                ((CustomUserDetails) userDetails).getNombre(),
                 userDetails.getRol().name(),
                 userDetails.getConsultorioId(),
                 userDetails.isForcePasswordChange()

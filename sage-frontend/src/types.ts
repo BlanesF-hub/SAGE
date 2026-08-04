@@ -176,11 +176,12 @@ export interface LoginRequest {
 
 export interface LoginResponse {
   token: string;
-  rol: Rol;
-  nombre: string;
   id: number;
+  usuario: string;
+  nombre: string;
+  rol: Rol;
+  consultorioId?: number;
   forcePasswordChange: boolean;
-  consultorio?: Consultorio;
 }
 
 export interface RegisterPacienteRequest {

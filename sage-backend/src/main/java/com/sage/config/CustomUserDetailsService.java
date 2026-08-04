@@ -34,7 +34,8 @@ public class CustomUserDetailsService implements UserDetailsService {
                     emp.getContrasena(),
                     emp.getRol(),
                     consultorioId,
-                    emp.isForcePasswordChange()
+                    emp.isForcePasswordChange(),
+                    emp.getNombreEmpleado()
             );
         }
 
@@ -47,8 +48,9 @@ public class CustomUserDetailsService implements UserDetailsService {
                     pac.getUsuario(),
                     pac.getContrasena(),
                     Rol.PACIENTE,
-                    null, // El paciente no pertenece a un único consultorio
-                    false // Los pacientes no tienen cambio forzado
+                    null, // El paciente no pertenece a un Ãºnico consultorio
+                    false, // Los pacientes no tienen cambio forzado
+                    pac.getNombrePaciente()
             );
         }
 

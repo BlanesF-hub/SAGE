@@ -34,9 +34,9 @@ export default function SecretarioDashboard() {
   }, [selectedDoctor, fecha]);
 
   const fetchDoctores = async () => {
-    if (!user?.consultorio) return;
+    if (!user?.consultorioId) return;
     try {
-      const data = await doctorApi.listarPorConsultorio(user.consultorio.id);
+      const data = await doctorApi.listarPorConsultorio(user.consultorioId);
       setDoctores(data);
     } catch {
       toast.error('Error al cargar doctores');

@@ -17,14 +17,16 @@ public class CustomUserDetails implements UserDetails {
     private final Rol rol;
     private final Long consultorioId;
     private final boolean forcePasswordChange;
+    private final String nombre;
 
-    public CustomUserDetails(Long id, String username, String password, Rol rol, Long consultorioId, boolean forcePasswordChange) {
+    public CustomUserDetails(Long id, String username, String password, Rol rol, Long consultorioId, boolean forcePasswordChange, String nombre) {
         this.id = id;
         this.username = username;
         this.password = password;
         this.rol = rol;
         this.consultorioId = consultorioId;
         this.forcePasswordChange = forcePasswordChange;
+        this.nombre = nombre;
     }
 
     @Override

@@ -32,6 +32,12 @@ VALUES
     ('PAMI_OS', 'PAMI Instituto')
 ON CONFLICT (cod_obra_social) DO NOTHING;
 
+-- 4.1 Admin General (usuario: admin / contrasena: admin123)
+INSERT INTO empleado (usuario, contrasena, nombre_empleado, rol, force_password_change, consultorio_id)
+SELECT 'admin', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'Administrador General SAGE', 'ADMIN_GENERAL', FALSE, c.id 
+FROM consultorio c WHERE c.cod_consultorio = 'CONS-CENTRAL'
+ON CONFLICT (usuario) DO NOTHING;
+
 -- 5. Admin Consultorio (usuario: admin_consultorio / contrasena: admin123)
 INSERT INTO empleado (usuario, contrasena, nombre_empleado, rol, force_password_change, consultorio_id)
 SELECT 'admin_consultorio', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'Admin Consultorio Central', 'ADMIN_CONSULTORIO', FALSE, c.id 

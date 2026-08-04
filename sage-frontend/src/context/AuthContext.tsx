@@ -2,15 +2,16 @@
    SAGE — Auth Context (JWT + Role-Based Routing)
    ============================================================ */
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import type { Rol, LoginResponse, Consultorio } from '../types';
+import type { Rol, LoginResponse } from '../types';
 
 interface AuthUser {
   id: number;
+  usuario: string;
   nombre: string;
   rol: Rol;
   token: string;
   forcePasswordChange: boolean;
-  consultorio?: Consultorio;
+  consultorioId?: number;
 }
 
 interface AuthContextType {
@@ -49,11 +50,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = (data: LoginResponse) => {
     const authUser: AuthUser = {
       id: data.id,
+      usuario: data.usuario,
       nombre: data.nombre,
       rol: data.rol,
       token: data.token,
       forcePasswordChange: data.forcePasswordChange,
-      consultorio: data.consultorio,
+      consultorioId: data.consultorioId,
     };
     setUser(authUser);
   };
