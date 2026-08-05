@@ -17,7 +17,8 @@ function ProtectedRoute({ children, roles }: { children: JSX.Element; roles?: st
   const { user, isAuthenticated } = useAuth();
 
   if (!isAuthenticated) return <Navigate to="/" replace />;
-  if (user?.forcePasswordChange) return <Navigate to="/cambiar-contrasena" replace />;
+  // Solo forzar cambio de credenciales a empleados (admin, doctor, secretario), NO a pacientes
+  if (user?.forcePasswordChange && user.rol !== 'PACIENTE') return <Navigate to="/cambiar-contrasena" replace />;
   if (roles && user && !roles.includes(user.rol)) return <Navigate to="/" replace />;
 
   return children;
@@ -26,6 +27,9 @@ function ProtectedRoute({ children, roles }: { children: JSX.Element; roles?: st
 function RootPage() {
   const { user } = useAuth();
   if (!user) return <LoginPage />;
+
+  // Empleados con primer login deben cambiar credenciales
+  if (user.forcePasswordChange && user.rol !== 'PACIENTE') return <Navigate to="/cambiar-contrasena" replace />;
 
   switch (user.rol) {
     case 'PACIENTE':           return <Navigate to="/paciente" replace />;
