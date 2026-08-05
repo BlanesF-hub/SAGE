@@ -3,6 +3,7 @@
    ============================================================ */
 import { useState, FormEvent } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { authApi } from '../services/api';
 import type { TipoPaciente } from '../types';
 import { FiActivity, FiArrowRight } from 'react-icons/fi';
@@ -11,6 +12,7 @@ import './AuthPages.css';
 
 export default function RegisterPage() {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [loading, setLoading] = useState(false);
 
   const [form, setForm] = useState({
@@ -47,8 +49,12 @@ export default function RegisterPage() {
         codObraSocial: form.tipoPaciente === 'OBRA_SOCIAL' ? form.codObraSocial : undefined,
         nroBeneficiario: form.nroBeneficiario ? Number(form.nroBeneficiario) : undefined,
       });
-      toast.success('¡Cuenta creada exitosamente! Ya podés iniciar sesión.');
-      navigate('/login');
+      toast.success('¡Cuenta creada exitosamente! Bienvenido/a.');
+      // Auto-login: cargar los datos del paciente recién registrado y entrar directo
+      const loginData = await authApi.login({ usuario: form.usuario, contrasena: form.contrasena });
+      login(loginData);
+      navigate('/');
+
     } catch (err: any) {
       toast.error(err?.message || err?.response?.data || 'Error al registrar el paciente');
     } finally {

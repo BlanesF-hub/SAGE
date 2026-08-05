@@ -93,11 +93,13 @@ export const authApi = {
     if (matchedUser) {
       const userPass = matchedUser.contrasena || 'sage123';
       if (userPass === data.contrasena) {
-        const isForce = matchedUser.esProvisoria !== false;
+        // Pacientes nunca tienen forcePasswordChange, ya eligieron sus credenciales al registrarse
+        const isPaciente = matchedRol === 'PACIENTE';
+        const isForce = isPaciente ? false : matchedUser.esProvisoria !== false;
         return {
           id: matchedUser.id,
           usuario: matchedUser.usuario,
-          nombre: matchedUser.nombreEmpleado,
+          nombre: matchedUser.nombrePaciente || matchedUser.nombreEmpleado,
           rol: matchedRol,
           token: 'mock-token-' + matchedUser.id,
           forcePasswordChange: isForce,
@@ -111,7 +113,7 @@ export const authApi = {
   },
 
   registerPaciente: async (data: RegisterPacienteRequest) => {
-    saveMock('mock_pacientes', { ...data, rol: 'PACIENTE' });
+    saveMock('mock_pacientes', { ...data, rol: 'PACIENTE', esProvisoria: false });
     return 'OK';
   },
 
