@@ -111,46 +111,59 @@ export const doctorApi = {
     api.get<Doctor[]>(`/api/consultorio/${consultorioId}/doctores`).then((r) => r.data),
 };
 
-// ── Admin ABMs ───────────────────────────────────────
+// ── Funciones de ayuda para MOCK de BD Local ──
+const getLocal = <T>(key: string): T[] => JSON.parse(localStorage.getItem(key) || '[]');
+const setLocal = (key: string, data: any) => localStorage.setItem(key, JSON.stringify(data));
+const saveMock = (key: string, data: any) => {
+  const items = getLocal<any>(key);
+  const newItem = { id: Date.now(), ...data, fechaDesde: new Date().toISOString() };
+  items.push(newItem);
+  setLocal(key, items);
+  return newItem;
+};
+
+// ── Admin ABMs (MOCK LOCAL PARA DEMO) ───────────────────────────────────────
 export const adminApi = {
   // Zonas
-  getZonas: () => api.get<Zona[]>('/api/admin/zonas').then((r) => r.data),
-  createZona: (data: { codZona: string; nombreZona: string }) =>
-    api.post<Zona>('/api/admin/zonas', data).then((r) => r.data),
+  getZonas: async () => getLocal<Zona>('mock_zonas'),
+  createZona: async (data: { codZona: string; nombreZona: string }) => saveMock('mock_zonas', data),
 
   // Localidades
-  getLocalidades: () => api.get<Localidad[]>('/api/admin/localidades').then((r) => r.data),
-  createLocalidad: (data: { codLocalidad: string; nombreLocalidad: string; zonaId: number }) =>
-    api.post<Localidad>('/api/admin/localidades', data).then((r) => r.data),
+  getLocalidades: async () => getLocal<Localidad>('mock_localidades'),
+  createLocalidad: async (data: { codLocalidad: string; nombreLocalidad: string; zonaId: number }) => {
+    const zonas = getLocal<Zona>('mock_zonas');
+    const zona = zonas.find((z) => z.id === data.zonaId);
+    return saveMock('mock_localidades', { ...data, zona });
+  },
 
   // Consultorios
-  getConsultorios: () => api.get<Consultorio[]>('/api/admin/consultorios').then((r) => r.data),
-  createConsultorio: (data: { codConsultorio: string; nombreConsultorio: string; direccionConsultorio?: string; localidadId: number }) =>
-    api.post<Consultorio>('/api/admin/consultorios', data).then((r) => r.data),
+  getConsultorios: async () => getLocal<Consultorio>('mock_consultorios'),
+  createConsultorio: async (data: { codConsultorio: string; nombreConsultorio: string; direccionConsultorio?: string; localidadId: number }) => {
+    const localidades = getLocal<Localidad>('mock_localidades');
+    const localidad = localidades.find((l) => l.id === data.localidadId);
+    return saveMock('mock_consultorios', { ...data, localidad });
+  },
 
   // Obras Sociales
-  getObrasSociales: () => api.get<ObraSocial[]>('/api/admin/obras-sociales').then((r) => r.data),
-  createObraSocial: (data: { codObraSocial: string; nombreObraSocial: string }) =>
-    api.post<ObraSocial>('/api/admin/obras-sociales', data).then((r) => r.data),
+  getObrasSociales: async () => getLocal<ObraSocial>('mock_obras_sociales'),
+  createObraSocial: async (data: { codObraSocial: string; nombreObraSocial: string }) => saveMock('mock_obras_sociales', data),
 
   // Especialidades
-  getEspecialidades: () => api.get<Especialidad[]>('/api/admin/especialidades').then((r) => r.data),
-  createEspecialidad: (data: { codEspecialidad: string; nombreEspecialidad: string }) =>
-    api.post<Especialidad>('/api/admin/especialidades', data).then((r) => r.data),
+  getEspecialidades: async () => getLocal<Especialidad>('mock_especialidades'),
+  createEspecialidad: async (data: { codEspecialidad: string; nombreEspecialidad: string }) => saveMock('mock_especialidades', data),
 
   // Tipos Turno
-  getTiposTurno: () => api.get<TipoTurno[]>('/api/admin/tipos-turno').then((r) => r.data),
-  createTipoTurno: (data: { codTipoTurno: string; nombreTipoTurno: string }) =>
-    api.post<TipoTurno>('/api/admin/tipos-turno', data).then((r) => r.data),
+  getTiposTurno: async () => getLocal<TipoTurno>('mock_tipos_turno'),
+  createTipoTurno: async (data: { codTipoTurno: string; nombreTipoTurno: string }) => saveMock('mock_tipos_turno', data),
 
   // Estados Consulta
-  getEstadosConsulta: () => api.get<EstadoConsulta[]>('/api/admin/estados-consulta').then((r) => r.data),
-  createEstadoConsulta: (data: { codEc: string; nombreEc: string }) =>
-    api.post<EstadoConsulta>('/api/admin/estados-consulta', data).then((r) => r.data),
+  getEstadosConsulta: async () => getLocal<EstadoConsulta>('mock_estados_consulta'),
+  createEstadoConsulta: async (data: { codEc: string; nombreEc: string }) => saveMock('mock_estados_consulta', data),
 
   // Admin Consultorio
-  crearAdminConsultorio: (data: { usuario: string; nombreEmpleado: string; nroTelefono?: string; consultorioId: number }) =>
-    api.post('/api/admin/admins-consultorio', data).then((r) => r.data),
+  crearAdminConsultorio: async (data: { usuario: string; nombreEmpleado: string; nroTelefono?: string; consultorioId: number }) => {
+    return saveMock('mock_admins_consultorio', data);
+  },
 };
 
 // ── Consultorio Admin ────────────────────────────────
