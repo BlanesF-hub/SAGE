@@ -167,22 +167,40 @@ export default function ConsultorioAdminDashboard() {
                       <th>Usuario</th>
                       <th>Nombre Completo</th>
                       <th>Matrícula</th>
+                      <th>Salas Asignadas</th>
                       <th>Agenda</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {doctores.map((d) => (
-                      <tr key={d.id}>
-                        <td><strong style={{ color: 'var(--primary-color)' }}>{d.usuario}</strong></td>
-                        <td>{d.nombreEmpleado}</td>
-                        <td>{d.codDoctor}</td>
-                        <td>
-                           <button className="btn btn-sm btn-secondary" onClick={() => handleOpenAgenda(d)}>
-                              <FiCalendar /> Configurar
-                           </button>
-                        </td>
-                      </tr>
-                    ))}
+                    {doctores.map((d) => {
+                      // Calcular salas únicas asignadas a este médico
+                      const agendaDoc = d.configuracion?.agenda || [];
+                      const salasAsignadasIds = Array.from(new Set(agendaDoc.map((a: any) => a.salaId)));
+                      const nombresSalas = salasAsignadasIds
+                        .map((id) => salas.find((s) => s.id === id)?.nombreSala)
+                        .filter(Boolean)
+                        .join(', ');
+
+                      return (
+                        <tr key={d.id}>
+                          <td><strong style={{ color: 'var(--primary-color)' }}>{d.usuario}</strong></td>
+                          <td>{d.nombreEmpleado}</td>
+                          <td>{d.codDoctor}</td>
+                          <td>
+                            {nombresSalas ? (
+                              <span className="badge badge-primary">{nombresSalas}</span>
+                            ) : (
+                              <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Sin asignar</span>
+                            )}
+                          </td>
+                          <td>
+                             <button className="btn btn-sm btn-secondary" onClick={() => handleOpenAgenda(d)}>
+                                <FiCalendar /> Configurar
+                             </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
