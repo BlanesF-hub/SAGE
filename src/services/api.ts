@@ -56,9 +56,16 @@ api.interceptors.response.use(
 // ── Auth ─────────────────────────────────────────────
 export const authApi = {
   login: async (data: LoginRequest) => {
-    // Intentar buscar en la BD mock local primero (ej. administradores creados)
+    const userStr = data.usuario.trim();
+    
+    // 1. Mock de DEMO_ACTORS
+    if (userStr === 'secretario' && data.contrasena === 'admin123') return { id: 2, usuario: 'secretario', nombre: 'Secretario de Prueba', rol: 'ADMIN_CONSULTORIO', token: 'mock-token', forcePasswordChange: false, consultorioId: 1 } as LoginResponse;
+    if (userStr === 'doctor' && data.contrasena === 'admin123') return { id: 3, usuario: 'doctor', nombre: 'Dr. Prueba', rol: 'DOCTOR', token: 'mock-token', forcePasswordChange: false, consultorioId: 1 } as LoginResponse;
+    if (userStr === 'paciente' && data.contrasena === 'admin123') return { id: 4, usuario: 'paciente', nombre: 'Paciente Prueba', rol: 'PACIENTE', token: 'mock-token', forcePasswordChange: false } as LoginResponse;
+
+    // 2. Buscar en la BD mock local (ej. administradores creados por el superadmin)
     const admins = getLocal<any>('mock_admins_consultorio');
-    const admin = admins.find((a) => a.usuario === data.usuario);
+    const admin = admins.find((a) => a.usuario.trim() === userStr);
     
     if (admin && data.contrasena === 'sage123') {
       return {
@@ -72,7 +79,7 @@ export const authApi = {
       } as LoginResponse;
     }
 
-    // Si no está local, intentar ir al backend (fallará en Vercel sin API)
+    // 3. Si no está local, intentar ir al backend (fallará en Vercel sin API)
     return api.post<LoginResponse>('/auth/login', data).then((r) => r.data);
   },
 
