@@ -21,6 +21,7 @@ export default function AdminDashboard() {
 
   // Modales y formularios
   const [modalOpen, setModalOpen] = useState(false);
+  const [parametricModalType, setParametricModalType] = useState<'OBRA_SOCIAL' | 'ESPECIALIDAD' | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   // Form states
@@ -140,6 +141,38 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleCreateObraSocial = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      await adminApi.createObraSocial(formObraSocial);
+      toast.success('Obra Social creada exitosamente');
+      setFormObraSocial({ codObraSocial: '', nombreObraSocial: '' });
+      setModalOpen(false);
+      fetchData();
+    } catch (err: any) {
+      toast.error(err.response?.data || 'Error al crear obra social');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleCreateEspecialidad = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      await adminApi.createEspecialidad(formEspecialidad);
+      toast.success('Especialidad creada exitosamente');
+      setFormEspecialidad({ codEspecialidad: '', nombreEspecialidad: '' });
+      setModalOpen(false);
+      fetchData();
+    } catch (err: any) {
+      toast.error(err.response?.data || 'Error al crear especialidad');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <div className="page-container animate-fade-in">
       <div className="page-header">
@@ -147,9 +180,11 @@ export default function AdminDashboard() {
           <h1 className="page-title">Administración General</h1>
           <p className="page-subtitle">Gestión de zonas geográficas, consultorios, obras sociales y usuarios</p>
         </div>
-        <button id="btn-admin-add" className="btn btn-primary" onClick={() => setModalOpen(true)}>
-          <FiPlus /> Agregar Elemento
-        </button>
+        {activeTab !== 'PARAMETRICAS' && (
+          <button id="btn-admin-add" className="btn btn-primary" onClick={() => setModalOpen(true)}>
+            <FiPlus /> Agregar Elemento
+          </button>
+        )}
       </div>
 
       {/* Tabs */}
@@ -236,7 +271,12 @@ export default function AdminDashboard() {
         ) : activeTab === 'PARAMETRICAS' ? (
           <div className="grid-2">
             <div>
-              <h3 style={{ marginBottom: '12px' }}>Obras Sociales</h3>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                <h3 style={{ margin: 0 }}>Obras Sociales</h3>
+                <button className="btn btn-primary" style={{ padding: '4px 12px', fontSize: '0.9rem' }} onClick={() => { setParametricModalType('OBRA_SOCIAL'); setModalOpen(true); }}>
+                  <FiPlus /> Agregar
+                </button>
+              </div>
               <div className="table-container">
                 <table>
                   <thead>
@@ -257,7 +297,12 @@ export default function AdminDashboard() {
               </div>
             </div>
             <div>
-              <h3 style={{ marginBottom: '12px' }}>Especialidades</h3>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                <h3 style={{ margin: 0 }}>Especialidades</h3>
+                <button className="btn btn-primary" style={{ padding: '4px 12px', fontSize: '0.9rem' }} onClick={() => { setParametricModalType('ESPECIALIDAD'); setModalOpen(true); }}>
+                  <FiPlus /> Agregar
+                </button>
+              </div>
               <div className="table-container">
                 <table>
                   <thead>
@@ -399,6 +444,44 @@ export default function AdminDashboard() {
                 <div className="modal-actions">
                   <button type="button" className="btn btn-secondary" onClick={() => setModalOpen(false)}>Cancelar</button>
                   <button type="submit" className="btn btn-primary" disabled={submitting}>Crear Administrador</button>
+                </div>
+              </form>
+            )}
+
+            {activeTab === 'PARAMETRICAS' && parametricModalType === 'OBRA_SOCIAL' && (
+              <form onSubmit={handleCreateObraSocial} className="auth-form">
+                <div className="input-group">
+                  <label htmlFor="ad-cod-os">Código Obra Social</label>
+                  <input id="ad-cod-os" className="input-field" required
+                    value={formObraSocial.codObraSocial} onChange={(e) => setFormObraSocial((p) => ({ ...p, codObraSocial: e.target.value }))} />
+                </div>
+                <div className="input-group">
+                  <label htmlFor="ad-nom-os">Nombre Obra Social</label>
+                  <input id="ad-nom-os" className="input-field" required
+                    value={formObraSocial.nombreObraSocial} onChange={(e) => setFormObraSocial((p) => ({ ...p, nombreObraSocial: e.target.value }))} />
+                </div>
+                <div className="modal-actions">
+                  <button type="button" className="btn btn-secondary" onClick={() => setModalOpen(false)}>Cancelar</button>
+                  <button type="submit" className="btn btn-primary" disabled={submitting}>Guardar</button>
+                </div>
+              </form>
+            )}
+
+            {activeTab === 'PARAMETRICAS' && parametricModalType === 'ESPECIALIDAD' && (
+              <form onSubmit={handleCreateEspecialidad} className="auth-form">
+                <div className="input-group">
+                  <label htmlFor="ad-cod-esp">Código Especialidad</label>
+                  <input id="ad-cod-esp" className="input-field" required
+                    value={formEspecialidad.codEspecialidad} onChange={(e) => setFormEspecialidad((p) => ({ ...p, codEspecialidad: e.target.value }))} />
+                </div>
+                <div className="input-group">
+                  <label htmlFor="ad-nom-esp">Nombre Especialidad</label>
+                  <input id="ad-nom-esp" className="input-field" required
+                    value={formEspecialidad.nombreEspecialidad} onChange={(e) => setFormEspecialidad((p) => ({ ...p, nombreEspecialidad: e.target.value }))} />
+                </div>
+                <div className="modal-actions">
+                  <button type="button" className="btn btn-secondary" onClick={() => setModalOpen(false)}>Cancelar</button>
+                  <button type="submit" className="btn btn-primary" disabled={submitting}>Guardar</button>
                 </div>
               </form>
             )}
