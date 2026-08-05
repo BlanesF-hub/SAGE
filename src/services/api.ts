@@ -264,6 +264,47 @@ export const consultorioAdminApi = {
     const cId = JSON.parse(localStorage.getItem('sage_user') || '{}').consultorioId;
     return saveMock('mock_doctores', { ...data, consultorioId: cId, esProvisoria: true });
   },
+  getSalas: async () => {
+    const cId = JSON.parse(localStorage.getItem('sage_user') || '{}').consultorioId;
+    return getLocal<any>('mock_salas').filter((s) => s.consultorioId === cId);
+  },
+  crearSala: async (data: { codSala: string; nombreSala: string }) => {
+    const cId = JSON.parse(localStorage.getItem('sage_user') || '{}').consultorioId;
+    return saveMock('mock_salas', { ...data, consultorioId: cId });
+  },
+  asignarAgendaDoctor: async (doctorId: number, agenda: any[]) => {
+    const doctores = getLocal<any>('mock_doctores');
+    
+    // Validar solapamientos
+    for (const ag of agenda) {
+      if (!ag.salaId) continue;
+      const inicioNuevo = parseInt(ag.horaInicio.replace(':', ''));
+      const finNuevo = parseInt(ag.horaFin.replace(':', ''));
+      
+      for (const d of doctores) {
+        if (d.id === doctorId) continue; 
+        const configsAg = d.configuracion?.agenda || [];
+        for (const existingAg of configsAg) {
+           if (existingAg.diaSemana === ag.diaSemana && Number(existingAg.salaId) === Number(ag.salaId)) {
+              const inicioExt = parseInt(existingAg.horaInicio.replace(':', ''));
+              const finExt = parseInt(existingAg.horaFin.replace(':', ''));
+              if (inicioNuevo < finExt && finNuevo > inicioExt) {
+                 return Promise.reject({ response: { data: `Solapamiento de horario en la sala seleccionada con el médico: ${d.nombreEmpleado}` } });
+              }
+           }
+        }
+      }
+    }
+    
+    const idx = doctores.findIndex((d) => d.id === doctorId);
+    if (idx !== -1) {
+       if (!doctores[idx].configuracion) doctores[idx].configuracion = {};
+       doctores[idx].configuracion.agenda = agenda;
+       setLocal('mock_doctores', doctores);
+       return 'OK';
+    }
+    return Promise.reject({ response: { data: 'Doctor no encontrado' } });
+  },
 };
 
 // ── Agenda ───────────────────────────────────────────

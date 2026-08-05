@@ -9,6 +9,7 @@ export default function DoctorDashboard() {
   const { user } = useAuth();
   const [consultas, setConsultas] = useState<Consulta[]>([]);
   const [especialidades, setEspecialidades] = useState<Especialidad[]>([]);
+  const [salas, setSalas] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Modales
@@ -33,7 +34,18 @@ export default function DoctorDashboard() {
   useEffect(() => {
     fetchConsultas();
     fetchEspecialidades();
+    fetchSalas();
   }, []);
+
+  const fetchSalas = async () => {
+    try {
+       // Re-use admin api for mock
+       const data = await consultorioAdminApi.getSalas();
+       setSalas(data);
+    } catch {
+       console.error("Error al cargar salas");
+    }
+  };
 
   const fetchConsultas = async () => {
     setLoading(true);
@@ -63,8 +75,8 @@ export default function DoctorDashboard() {
       await doctorApi.configurar({
         codEspecialidad: selectedEspecialidad,
         edadMinima: edadMinima ? Number(edadMinima) : undefined,
-        edadMaxima: edadMaxima ? Number(edadMaxima) : undefined, // sends undefined for "no maximum"
-        agenda: agendaRows,
+        edadMaxima: edadMaxima ? Number(edadMaxima) : undefined,
+        agenda: agendaRows, // Sending the same read-only rows back
       });
       toast.success('Cuenta de médico configurada con éxito.');
       setConfigOpen(false);
@@ -129,7 +141,15 @@ export default function DoctorDashboard() {
           <h1 className="page-title">Panel Médico</h1>
           <p className="page-subtitle">Atención de pacientes, evolución de consultas y urgencias</p>
         </div>
-        <button id="btn-config-doc" className="btn btn-secondary" onClick={() => setConfigOpen(true)}>
+        <button id="btn-config-doc" className="btn btn-secondary" onClick={() => {
+           const currentUser = JSON.parse(localStorage.getItem('sage_user') || '{}');
+           const doctores = JSON.parse(localStorage.getItem('mock_doctores') || '[]');
+           const me = doctores.find((d: any) => d.id === currentUser.id);
+           if (me && me.configuracion?.agenda) {
+              setAgendaRows(me.configuracion.agenda);
+           }
+           setConfigOpen(true);
+        }}>
           <FiSettings /> Configurar Cuenta
         </button>
       </div>
@@ -268,22 +288,14 @@ export default function DoctorDashboard() {
 
               <div style={{ marginTop: '16px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                  <label style={{ fontWeight: 600 }}>Agenda y Horarios de Atención</label>
-                  <button type="button" className="btn btn-secondary btn-sm" onClick={agregarAgendaFila}>
-                    + Agregar Día
-                  </button>
+                  <label style={{ fontWeight: 600 }}>Agenda y Salas (Asignado por Administración)</label>
                 </div>
-                {agendaRows.map((row, idx) => (
+                {agendaRows.length === 0 ? (
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Aún no se le han asignado días ni salas de atención.</p>
+                ) : (
+                agendaRows.map((row, idx) => (
                   <div key={idx} className="grid-3" style={{ marginBottom: '8px', alignItems: 'center' }}>
-                    <select
-                      className="input-field"
-                      value={row.diaSemana}
-                      onChange={(e) => {
-                        const next = [...agendaRows];
-                        next[idx].diaSemana = Number(e.target.value);
-                        setAgendaRows(next);
-                      }}
-                    >
+                    <select className="input-field" value={row.diaSemana} disabled>
                       <option value="1">Lunes</option>
                       <option value="2">Martes</option>
                       <option value="3">Miércoles</option>
@@ -292,28 +304,16 @@ export default function DoctorDashboard() {
                       <option value="6">Sábado</option>
                       <option value="7">Domingo</option>
                     </select>
-                    <input
-                      type="time"
-                      className="input-field"
-                      value={row.horaInicio}
-                      onChange={(e) => {
-                        const next = [...agendaRows];
-                        next[idx].horaInicio = e.target.value;
-                        setAgendaRows(next);
-                      }}
-                    />
-                    <input
-                      type="time"
-                      className="input-field"
-                      value={row.horaFin}
-                      onChange={(e) => {
-                        const next = [...agendaRows];
-                        next[idx].horaFin = e.target.value;
-                        setAgendaRows(next);
-                      }}
-                    />
+                    <select className="input-field" value={row.salaId} disabled>
+                       {salas.map((s) => <option key={s.id} value={s.id}>{s.nombreSala}</option>)}
+                    </select>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <input type="time" className="input-field" value={row.horaInicio} disabled />
+                      <input type="time" className="input-field" value={row.horaFin} disabled />
+                    </div>
                   </div>
-                ))}
+                ))
+                )}
               </div>
 
               <div className="modal-actions">

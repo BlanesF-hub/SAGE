@@ -67,7 +67,7 @@ export interface EstadoConsulta {
   fechaHoraBaja?: string;
 }
 
-// ── Consultorio ───────────────────────────────────
+// ── Consultorio y Salas ───────────────────────────
 export interface Consultorio {
   id: number;
   codConsultorio: string;
@@ -76,6 +76,13 @@ export interface Consultorio {
   fechaDesde: string;
   fechaHasta?: string;
   localidad: Localidad;
+}
+
+export interface Sala {
+  id: number;
+  codSala: string;
+  nombreSala: string;
+  consultorioId: number;
 }
 
 // ── Empleado ──────────────────────────────────────
@@ -110,6 +117,7 @@ export interface AgendaDoctor {
   horaFin: string;
   tiempoMaximoEspera: number;
   activa: boolean;
+  salaId?: number;
 }
 
 // ── Paciente ──────────────────────────────────────
@@ -218,4 +226,5 @@ export interface AgendaInput {
   horaInicio: string;
   horaFin: string;
   tiempoMaximoEspera: number;
+  salaId?: number;
 }
