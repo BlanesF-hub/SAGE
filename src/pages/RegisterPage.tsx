@@ -120,21 +120,6 @@ export default function RegisterPage() {
               <FiClipboard /> Secretario
             </button>
 
-            <button
-              type="button"
-              className={`role-btn ${rolSeleccionado === 'ADMIN_CONSULTORIO' ? 'role-btn--active' : ''}`}
-              onClick={() => setRolSeleccionado('ADMIN_CONSULTORIO')}
-            >
-              <FiBriefcase /> Admin Consultorio
-            </button>
-
-            <button
-              type="button"
-              className={`role-btn ${rolSeleccionado === 'ADMIN_GENERAL' ? 'role-btn--active' : ''}`}
-              onClick={() => setRolSeleccionado('ADMIN_GENERAL')}
-            >
-              <FiShield /> Admin General
-            </button>
           </div>
         </div>
 
