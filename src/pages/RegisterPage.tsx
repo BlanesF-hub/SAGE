@@ -12,7 +12,7 @@ import './AuthPages.css';
 export default function RegisterPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [rolSeleccionado, setRolSeleccionado] = useState<Rol>('PACIENTE');
+  const rolSeleccionado = 'PACIENTE';
 
   // Form state
   const [form, setForm] = useState({
@@ -28,8 +28,7 @@ export default function RegisterPage() {
     nroAfiliado: '',
     codObraSocial: 'OSDE',
     nroBeneficiario: '',
-    // Campos Doctor
-    codEspecialidad: 'CLINICA',
+    nroBeneficiario: '',
   });
 
   const update = (field: string, value: string) =>
@@ -40,32 +39,20 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      if (rolSeleccionado === 'PACIENTE') {
-        await authApi.registerPaciente({
-          usuario: form.usuario,
-          contrasena: form.contrasena,
-          nombrePaciente: form.nombre,
-          dniPaciente: Number(form.dniPaciente),
-          nroTelefonoPaciente: form.nroTelefono || undefined,
-          fechaNacimiento: form.fechaNacimiento,
-          direccionPaciente: form.direccionPaciente || undefined,
-          tipoPaciente: form.tipoPaciente,
-          nroAfiliado: form.nroAfiliado ? Number(form.nroAfiliado) : undefined,
-          codObraSocial: form.tipoPaciente === 'OBRA_SOCIAL' ? form.codObraSocial : undefined,
-          nroBeneficiario: form.nroBeneficiario ? Number(form.nroBeneficiario) : undefined,
-        });
-        toast.success('¡Paciente registrado exitosamente!');
-      } else {
-        await authApi.registerEmpleado({
-          usuario: form.usuario,
-          contrasena: form.contrasena,
-          nombreEmpleado: form.nombre,
-          rol: rolSeleccionado,
-          nroTelefono: form.nroTelefono || undefined,
-          codEspecialidad: rolSeleccionado === 'DOCTOR' ? form.codEspecialidad : undefined,
-        });
-        toast.success(`¡Actor (${rolSeleccionado}) registrado exitosamente!`);
-      }
+      await authApi.registerPaciente({
+        usuario: form.usuario,
+        contrasena: form.contrasena,
+        nombrePaciente: form.nombre,
+        dniPaciente: Number(form.dniPaciente),
+        nroTelefonoPaciente: form.nroTelefono || undefined,
+        fechaNacimiento: form.fechaNacimiento,
+        direccionPaciente: form.direccionPaciente || undefined,
+        tipoPaciente: form.tipoPaciente,
+        nroAfiliado: form.nroAfiliado ? Number(form.nroAfiliado) : undefined,
+        codObraSocial: form.tipoPaciente === 'OBRA_SOCIAL' ? form.codObraSocial : undefined,
+        nroBeneficiario: form.nroBeneficiario ? Number(form.nroBeneficiario) : undefined,
+      });
+      toast.success('¡Paciente registrado exitosamente!');
 
       navigate('/login');
     } catch (err: any) {
@@ -88,40 +75,11 @@ export default function RegisterPage() {
 
         <div className="auth-brand">
           <div className="auth-logo"><FiActivity /></div>
-          <h1 className="auth-title">Registro de Actor</h1>
-          <p className="auth-subtitle">Seleccioná el rol e ingresá los datos</p>
+          <h1 className="auth-title">Registro de Paciente</h1>
+          <p className="auth-subtitle">Completá tus datos para sacar turnos</p>
         </div>
 
-        {/* Role Selector Tabs */}
-        <div className="role-selector">
-          <label className="input-group-label">Tipo de Actor a Registrar:</label>
-          <div className="role-buttons">
-            <button
-              type="button"
-              className={`role-btn ${rolSeleccionado === 'PACIENTE' ? 'role-btn--active' : ''}`}
-              onClick={() => setRolSeleccionado('PACIENTE')}
-            >
-              <FiHeart /> Paciente
-            </button>
 
-            <button
-              type="button"
-              className={`role-btn ${rolSeleccionado === 'DOCTOR' ? 'role-btn--active' : ''}`}
-              onClick={() => setRolSeleccionado('DOCTOR')}
-            >
-              <FiUserCheck /> Doctor
-            </button>
-
-            <button
-              type="button"
-              className={`role-btn ${rolSeleccionado === 'SECRETARIO' ? 'role-btn--active' : ''}`}
-              onClick={() => setRolSeleccionado('SECRETARIO')}
-            >
-              <FiClipboard /> Secretario
-            </button>
-
-          </div>
-        </div>
 
         <form className="auth-form" onSubmit={handleSubmit}>
           <div className="auth-form-grid">
@@ -215,21 +173,8 @@ export default function RegisterPage() {
             </>
           )}
 
-          {/* CAMPOS ESPECÍFICOS PARA DOCTOR */}
-          {rolSeleccionado === 'DOCTOR' && (
-            <div className="input-group">
-              <label htmlFor="reg-especialidad">Especialidad Médica</label>
-              <select id="reg-especialidad" className="input-field"
-                value={form.codEspecialidad} onChange={(e) => update('codEspecialidad', e.target.value)}>
-                <option value="CLINICA">Clínica General</option>
-                <option value="CARDIO">Cardiología</option>
-                <option value="PEDIATRIA">Pediatría</option>
-              </select>
-            </div>
-          )}
-
           <button id="reg-submit" type="submit" className="btn btn-primary btn-lg auth-submit" disabled={loading}>
-            {loading ? 'Registrando Actor...' : `Registrar como ${rolSeleccionado}`}
+            {loading ? 'Registrando...' : 'Completar Registro'}
             {!loading && <FiArrowRight />}
           </button>
         </form>
