@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { consultorioAdminApi } from '../services/api';
 import { FiUsers, FiPlus, FiUser } from 'react-icons/fi';
 import toast from 'react-hot-toast';
