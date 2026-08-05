@@ -62,16 +62,23 @@ export default function PacienteDashboard() {
     });
   }, [selectedConsultorioId, allDoctores]);
 
+  // Helper para resolver el nombre legible de una especialidad a partir de su código o ID
+  const resolveEspecialidadNombre = (codOrName: string) => {
+    if (!codOrName) return '-';
+    const mockEsp = getLocal<any>('mock_especialidades');
+    const found = mockEsp.find(
+      (e: any) => String(e.codEspecialidad) === String(codOrName) || String(e.id) === String(codOrName)
+    );
+    return found?.nombreEspecialidad || codOrName;
+  };
+
   // Especialidades únicas de los médicos del consultorio (con nombre legible)
   const especialidades = useMemo(() => {
-    const mockEsp = getLocal<any>('mock_especialidades');
     const map = new Map<string, string>();
     doctoresDelConsultorio.forEach((d: any) => {
       const cod = d.configuracion?.codEspecialidad || d.codEspecialidad;
       if (cod && !map.has(cod)) {
-        // Buscar nombre en mock_especialidades, fallback al código
-        const found = mockEsp.find((e: any) => e.codEspecialidad === cod || e.nombreEspecialidad === cod);
-        map.set(cod, found?.nombreEspecialidad || cod);
+        map.set(cod, resolveEspecialidadNombre(cod));
       }
     });
     return Array.from(map.entries()).map(([cod, nombre]) => ({ cod, nombre }));
@@ -148,11 +155,16 @@ export default function PacienteDashboard() {
     try {
       const doctor = allDoctores.find((d: any) => String(d.id) === String(selectedDoctorId));
       const consultorio = consultorios.find((c) => String(c.id) === String(selectedConsultorioId));
+      const espNombre = resolveEspecialidadNombre(selectedEspecialidad);
       const nuevoTurno: any = {
         id: Date.now(),
         pacienteId: user.id,
         doctorId: Number(selectedDoctorId),
-        doctor: { id: Number(selectedDoctorId), nombreEmpleado: doctor?.nombreEmpleado || 'Dr.', especialidad: { nombreEspecialidad: selectedEspecialidad } },
+        doctor: {
+          id: Number(selectedDoctorId),
+          nombreEmpleado: doctor?.nombreEmpleado || 'Dr.',
+          especialidad: { codEspecialidad: selectedEspecialidad, nombreEspecialidad: espNombre },
+        },
         consultorio: { nombreConsultorio: consultorio?.nombreConsultorio || '' },
         fechaHoraPlanificado: `${selectedFecha}T${selectedHora}:00`,
         estado: 'PENDIENTE',
@@ -220,7 +232,7 @@ export default function PacienteDashboard() {
                       </div>
                     </td>
                     <td>{turno.doctor?.nombreEmpleado}</td>
-                    <td>{turno.doctor?.especialidad?.nombreEspecialidad || selectedEspecialidad}</td>
+                    <td>{resolveEspecialidadNombre(turno.doctor?.especialidad?.nombreEspecialidad || turno.doctor?.especialidad?.codEspecialidad)}</td>
                     <td>{turno.consultorio?.nombreConsultorio}</td>
                     <td>
                       <span className={`badge badge-${turno.estado === 'CONFIRMADO' ? 'success' : turno.estado === 'PENDIENTE' ? 'warning' : 'primary'}`}>
