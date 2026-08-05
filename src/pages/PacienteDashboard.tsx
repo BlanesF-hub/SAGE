@@ -1,64 +1,38 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { adminApi, doctorApi, turnoApi, agendaApi } from '../services/api';
-import type { Turno, Doctor, Consultorio } from '../types';
-import { FiCalendar, FiPlus, FiClock, FiTrash2, FiUser, FiActivity } from 'react-icons/fi';
+import { adminApi, turnoApi } from '../services/api';
+import type { Turno, Consultorio } from '../types';
+import { FiCalendar, FiPlus, FiClock, FiUser, FiActivity } from 'react-icons/fi';
 import toast from 'react-hot-toast';
+
+// Helpers para leer desde el localStorage mock
+const getLocal = <T,>(key: string): T[] => JSON.parse(localStorage.getItem(key) || '[]');
 
 export default function PacienteDashboard() {
   const { user } = useAuth();
   const [turnos, setTurnos] = useState<Turno[]>([]);
   const [consultorios, setConsultorios] = useState<Consultorio[]>([]);
-  const [doctores, setDoctores] = useState<Doctor[]>([]);
-  const [slots, setSlots] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
-
-  // Form states
-  const [selectedConsultorio, setSelectedConsultorio] = useState('');
-  const [selectedDoctor, setSelectedDoctor] = useState('');
-  const [selectedFecha, setSelectedFecha] = useState('');
-  const [selectedHora, setSelectedHora] = useState('');
-  const [descripcion, setDescripcion] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  // Flujo de selección: Consultorio → Especialidad → Médico → Fecha/Hora
+  const [selectedConsultorioId, setSelectedConsultorioId] = useState('');
+  const [selectedEspecialidad, setSelectedEspecialidad] = useState('');
+  const [selectedDoctorId, setSelectedDoctorId] = useState('');
+  const [selectedFecha, setSelectedFecha] = useState('');
+  const [selectedHora, setSelectedHora] = useState('');
+  const [descripcion, setDescripcion] = useState('');
+
   useEffect(() => {
-    fetchTurnos();
     fetchConsultorios();
+    // Cargar turnos mock del paciente
+    const mockTurnos = getLocal<any>('mock_turnos_paciente').filter(
+      (t: any) => t.pacienteId === user?.id
+    );
+    setTurnos(mockTurnos);
+    setLoading(false);
   }, []);
-
-  useEffect(() => {
-    if (selectedConsultorio) {
-      doctorApi.listarPorConsultorio(Number(selectedConsultorio))
-        .then(setDoctores)
-        .catch(() => toast.error('Error al cargar doctores'));
-    } else {
-      setDoctores([]);
-    }
-    setSelectedDoctor('');
-    setSlots([]);
-  }, [selectedConsultorio]);
-
-  useEffect(() => {
-    if (selectedDoctor && selectedFecha) {
-      agendaApi.getSlotsDisponibles(Number(selectedDoctor), selectedFecha)
-        .then(setSlots)
-        .catch(() => toast.error('Error al cargar horarios disponibles'));
-    } else {
-      setSlots([]);
-    }
-    setSelectedHora('');
-  }, [selectedDoctor, selectedFecha]);
-
-  const fetchTurnos = async () => {
-    try {
-      // Stub for patient's personal turno list
-      // In production, this would be api.get(`/api/turnos/paciente/${user.id}`)
-      setLoading(false);
-    } catch {
-      toast.error('Error al cargar turnos');
-    }
-  };
 
   const fetchConsultorios = async () => {
     try {
@@ -69,43 +43,111 @@ export default function PacienteDashboard() {
     }
   };
 
+  // Todos los doctores del localStorage
+  const allDoctores = useMemo(() => getLocal<any>('mock_doctores'), [modalOpen]);
+
+  // Doctores del consultorio seleccionado (tienen agenda asignada con salaId en ese consultorio)
+  const doctoresDelConsultorio = useMemo(() => {
+    if (!selectedConsultorioId) return [];
+    // Las salas pertenecen a un consultorio
+    const salas = getLocal<any>('mock_salas').filter(
+      (s: any) => String(s.consultorioId) === String(selectedConsultorioId)
+    );
+    const salaIds = salas.map((s: any) => s.id);
+    // Un médico pertenece al consultorio si tiene agenda en alguna de sus salas
+    return allDoctores.filter((d: any) => {
+      const agenda = d.configuracion?.agenda || [];
+      return agenda.some((a: any) => salaIds.includes(Number(a.salaId)));
+    });
+  }, [selectedConsultorioId, allDoctores]);
+
+  // Especialidades únicas de los médicos del consultorio
+  const especialidades = useMemo(() => {
+    const set = new Set<string>();
+    doctoresDelConsultorio.forEach((d: any) => {
+      const esp = d.configuracion?.codEspecialidad || d.codEspecialidad;
+      if (esp) set.add(esp);
+    });
+    return Array.from(set);
+  }, [doctoresDelConsultorio]);
+
+  // Médicos filtrados por especialidad seleccionada
+  const doctoresFiltrados = useMemo(() => {
+    if (!selectedEspecialidad) return doctoresDelConsultorio;
+    return doctoresDelConsultorio.filter((d: any) => {
+      const esp = d.configuracion?.codEspecialidad || d.codEspecialidad;
+      return esp === selectedEspecialidad;
+    });
+  }, [selectedEspecialidad, doctoresDelConsultorio]);
+
+  // Horarios disponibles: días de agenda del médico seleccionado para la fecha elegida
+  const horariosDisponibles = useMemo(() => {
+    if (!selectedDoctorId || !selectedFecha) return [];
+    const doctor = allDoctores.find((d: any) => String(d.id) === String(selectedDoctorId));
+    if (!doctor) return [];
+    const agenda = doctor.configuracion?.agenda || [];
+    const fecha = new Date(selectedFecha + 'T00:00:00');
+    // getDay() devuelve 0=Dom,1=Lun,..., nuestra agenda usa 1=Lun,...,7=Dom
+    const diaSemana = fecha.getDay() === 0 ? 7 : fecha.getDay();
+    const turnosDia = agenda.filter((a: any) => Number(a.diaSemana) === diaSemana);
+    if (turnosDia.length === 0) return [];
+
+    // Generar slots de 15 min dentro de cada bloque de horario
+    const slots: string[] = [];
+    for (const bloque of turnosDia) {
+      const [hIni, mIni] = bloque.horaInicio.split(':').map(Number);
+      const [hFin, mFin] = bloque.horaFin.split(':').map(Number);
+      let cur = hIni * 60 + mIni;
+      const end = hFin * 60 + mFin;
+      while (cur + 15 <= end) {
+        const h = String(Math.floor(cur / 60)).padStart(2, '0');
+        const m = String(cur % 60).padStart(2, '0');
+        slots.push(`${h}:${m}`);
+        cur += 15;
+      }
+    }
+    return slots;
+  }, [selectedDoctorId, selectedFecha, allDoctores]);
+
+  const resetForm = () => {
+    setSelectedConsultorioId('');
+    setSelectedEspecialidad('');
+    setSelectedDoctorId('');
+    setSelectedFecha('');
+    setSelectedHora('');
+    setDescripcion('');
+  };
+
   const handleSolicitar = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
     setSubmitting(true);
     try {
-      const fechaHora = `${selectedFecha}T${selectedHora}:00`;
-      const nuevoTurno = await turnoApi.solicitar({
+      const doctor = allDoctores.find((d: any) => String(d.id) === String(selectedDoctorId));
+      const consultorio = consultorios.find((c) => String(c.id) === String(selectedConsultorioId));
+      const nuevoTurno: any = {
+        id: Date.now(),
         pacienteId: user.id,
-        doctorId: Number(selectedDoctor),
-        fechaHora,
+        doctorId: Number(selectedDoctorId),
+        doctor: { id: Number(selectedDoctorId), nombreEmpleado: doctor?.nombreEmpleado || 'Dr.', especialidad: { nombreEspecialidad: selectedEspecialidad } },
+        consultorio: { nombreConsultorio: consultorio?.nombreConsultorio || '' },
+        fechaHoraPlanificado: `${selectedFecha}T${selectedHora}:00`,
+        estado: 'PENDIENTE',
+        confirmado: false,
         descripcion,
-      });
+      };
+      // Guardar en mock
+      const stored = getLocal<any>('mock_turnos_paciente');
+      stored.push(nuevoTurno);
+      localStorage.setItem('mock_turnos_paciente', JSON.stringify(stored));
       setTurnos((prev) => [nuevoTurno, ...prev]);
-      toast.success('Turno solicitado exitosamente. Le llegará una confirmación por WhatsApp.');
+      toast.success('¡Turno solicitado exitosamente!');
       setModalOpen(false);
-      // Reset form
-      setSelectedConsultorio('');
-      setSelectedDoctor('');
-      setSelectedFecha('');
-      setSelectedHora('');
-      setDescripcion('');
+      resetForm();
     } catch (err: any) {
-      toast.error(err.response?.data || 'Error al solicitar el turno');
+      toast.error(err?.response?.data || 'Error al solicitar el turno');
     } finally {
       setSubmitting(false);
-    }
-  };
-
-  const handleConfirmar = async (id: number) => {
-    try {
-      await turnoApi.confirmar(id);
-      setTurnos((prev) =>
-        prev.map((t) => (t.id === id ? { ...t, confirmado: true, estado: 'CONFIRMADO' } : t))
-      );
-      toast.success('Turno confirmado exitosamente');
-    } catch (err: any) {
-      toast.error(err.response?.data || 'Error al confirmar turno');
     }
   };
 
@@ -138,12 +180,12 @@ export default function PacienteDashboard() {
                   <th>Fecha y Hora</th>
                   <th>Doctor</th>
                   <th>Especialidad</th>
+                  <th>Consultorio</th>
                   <th>Estado</th>
-                  <th>Acciones</th>
                 </tr>
               </thead>
               <tbody>
-                {turnos.map((turno) => (
+                {turnos.map((turno: any) => (
                   <tr key={turno.id}>
                     <td>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -154,25 +196,13 @@ export default function PacienteDashboard() {
                         })}
                       </div>
                     </td>
-                    <td>{turno.doctor.nombreEmpleado}</td>
-                    <td>{turno.doctor.especialidad?.nombreEspecialidad || 'General'}</td>
+                    <td>{turno.doctor?.nombreEmpleado}</td>
+                    <td>{turno.doctor?.especialidad?.nombreEspecialidad || selectedEspecialidad}</td>
+                    <td>{turno.consultorio?.nombreConsultorio}</td>
                     <td>
-                      <span className={`badge badge-${
-                        turno.estado === 'CONFIRMADO' ? 'success' :
-                        turno.estado === 'ASIGNADO' || turno.estado === 'REASIGNADO' ? 'warning' : 'primary'
-                      }`}>
+                      <span className={`badge badge-${turno.estado === 'CONFIRMADO' ? 'success' : turno.estado === 'PENDIENTE' ? 'warning' : 'primary'}`}>
                         {turno.estado}
                       </span>
-                    </td>
-                    <td>
-                      {(turno.estado === 'ASIGNADO' || turno.estado === 'REASIGNADO') && !turno.confirmado && (
-                        <button
-                          className="btn btn-success btn-sm"
-                          onClick={() => handleConfirmar(turno.id)}
-                        >
-                          Confirmar
-                        </button>
-                      )}
                     </td>
                   </tr>
                 ))}
@@ -185,80 +215,126 @@ export default function PacienteDashboard() {
       {modalOpen && (
         <div className="modal-overlay">
           <div className="modal-content card-glass">
-            <h2 className="modal-title">Nuevo Turno Médico</h2>
+            <h2 className="modal-title">Solicitar Turno Médico</h2>
             <form onSubmit={handleSolicitar} className="auth-form">
+
+              {/* PASO 1: Consultorio */}
               <div className="input-group">
-                <label htmlFor="st-consultorio">Consultorio</label>
+                <label htmlFor="st-consultorio">1. Consultorio</label>
                 <select
                   id="st-consultorio"
                   className="input-field"
-                  value={selectedConsultorio}
-                  onChange={(e) => setSelectedConsultorio(e.target.value)}
+                  value={selectedConsultorioId}
+                  onChange={(e) => {
+                    setSelectedConsultorioId(e.target.value);
+                    setSelectedEspecialidad('');
+                    setSelectedDoctorId('');
+                    setSelectedFecha('');
+                    setSelectedHora('');
+                  }}
                   required
                 >
-                  <option value="">Seleccione consultorio</option>
+                  <option value="">Seleccioná un consultorio</option>
                   {consultorios.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.nombreConsultorio}
-                    </option>
+                    <option key={c.id} value={c.id}>{c.nombreConsultorio}</option>
                   ))}
                 </select>
               </div>
 
-              <div className="input-group">
-                <label htmlFor="st-doctor">Médico / Especialista</label>
-                <select
-                  id="st-doctor"
-                  className="input-field"
-                  value={selectedDoctor}
-                  onChange={(e) => setSelectedDoctor(e.target.value)}
-                  disabled={!selectedConsultorio}
-                  required
-                >
-                  <option value="">Seleccione médico</option>
-                  {doctores.map((d) => (
-                    <option key={d.id} value={d.id}>
-                      {d.nombreEmpleado} ({d.especialidad?.nombreEspecialidad || 'General'})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="grid-2">
+              {/* PASO 2: Especialidad (solo si hay consultorio y médicos) */}
+              {selectedConsultorioId && (
                 <div className="input-group">
-                  <label htmlFor="st-fecha">Fecha</label>
+                  <label htmlFor="st-especialidad">2. Especialidad</label>
+                  {especialidades.length === 0 ? (
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                      No hay médicos con agenda asignada en este consultorio aún.
+                    </p>
+                  ) : (
+                    <select
+                      id="st-especialidad"
+                      className="input-field"
+                      value={selectedEspecialidad}
+                      onChange={(e) => {
+                        setSelectedEspecialidad(e.target.value);
+                        setSelectedDoctorId('');
+                        setSelectedFecha('');
+                        setSelectedHora('');
+                      }}
+                      required
+                    >
+                      <option value="">Seleccioná una especialidad</option>
+                      {especialidades.map((esp) => (
+                        <option key={esp} value={esp}>{esp}</option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+              )}
+
+              {/* PASO 3: Médico filtrado */}
+              {selectedEspecialidad && (
+                <div className="input-group">
+                  <label htmlFor="st-doctor">3. Médico</label>
+                  <select
+                    id="st-doctor"
+                    className="input-field"
+                    value={selectedDoctorId}
+                    onChange={(e) => {
+                      setSelectedDoctorId(e.target.value);
+                      setSelectedFecha('');
+                      setSelectedHora('');
+                    }}
+                    required
+                  >
+                    <option value="">Seleccioná un médico</option>
+                    {doctoresFiltrados.map((d: any) => (
+                      <option key={d.id} value={d.id}>{d.nombreEmpleado}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* PASO 4: Fecha */}
+              {selectedDoctorId && (
+                <div className="input-group">
+                  <label htmlFor="st-fecha">4. Fecha</label>
                   <input
                     id="st-fecha"
                     type="date"
                     className="input-field"
                     value={selectedFecha}
-                    onChange={(e) => setSelectedFecha(e.target.value)}
+                    onChange={(e) => { setSelectedFecha(e.target.value); setSelectedHora(''); }}
                     min={new Date().toISOString().split('T')[0]}
-                    disabled={!selectedDoctor}
                     required
                   />
+                  {selectedFecha && horariosDisponibles.length === 0 && (
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '4px' }}>
+                      El médico no atiende ese día. Probá otra fecha.
+                    </p>
+                  )}
                 </div>
+              )}
 
+              {/* PASO 5: Hora */}
+              {selectedFecha && horariosDisponibles.length > 0 && (
                 <div className="input-group">
-                  <label htmlFor="st-hora">Horario disponible</label>
+                  <label htmlFor="st-hora">5. Horario disponible</label>
                   <select
                     id="st-hora"
                     className="input-field"
                     value={selectedHora}
                     onChange={(e) => setSelectedHora(e.target.value)}
-                    disabled={!selectedFecha || slots.length === 0}
                     required
                   >
-                    <option value="">Seleccione hora</option>
-                    {slots.map((s) => (
-                      <option key={s} value={s}>
-                        {s}
-                      </option>
+                    <option value="">Seleccioná un horario</option>
+                    {horariosDisponibles.map((h) => (
+                      <option key={h} value={h}>{h}</option>
                     ))}
                   </select>
                 </div>
-              </div>
+              )}
 
+              {/* Motivo */}
               <div className="input-group">
                 <label htmlFor="st-desc">Motivo de consulta</label>
                 <textarea
@@ -272,10 +348,10 @@ export default function PacienteDashboard() {
               </div>
 
               <div className="modal-actions">
-                <button type="button" className="btn btn-secondary" onClick={() => setModalOpen(false)}>
+                <button type="button" className="btn btn-secondary" onClick={() => { setModalOpen(false); resetForm(); }}>
                   Cancelar
                 </button>
-                <button type="submit" className="btn btn-primary" disabled={submitting}>
+                <button type="submit" className="btn btn-primary" disabled={submitting || !selectedHora}>
                   {submitting ? 'Solicitando...' : 'Confirmar Turno'}
                 </button>
               </div>
