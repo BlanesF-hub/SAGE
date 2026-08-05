@@ -10,6 +10,7 @@ import toast from 'react-hot-toast';
 import './AuthPages.css';
 
 export default function ChangePasswordPage() {
+  const [newUsername, setNewUsername] = useState('');
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -29,12 +30,12 @@ export default function ChangePasswordPage() {
     }
     setLoading(true);
     try {
-      await authApi.changePassword(oldPassword, newPassword);
-      updateUser({ forcePasswordChange: false });
-      toast.success('Contraseña cambiada exitosamente');
+      await authApi.changeCredentials(oldPassword, newPassword, newUsername || undefined);
+      updateUser({ forcePasswordChange: false, usuario: newUsername || undefined });
+      toast.success('Credenciales actualizadas exitosamente');
       navigate('/');
     } catch (err: any) {
-      toast.error(err.response?.data || 'Error al cambiar la contraseña');
+      toast.error(err.response?.data || 'Error al actualizar credenciales');
     } finally {
       setLoading(false);
     }
@@ -48,18 +49,30 @@ export default function ChangePasswordPage() {
       <div className="auth-container animate-fade-in">
         <div className="auth-brand">
           <div className="auth-logo"><FiActivity /></div>
-          <h1 className="auth-title">Cambiar Contraseña</h1>
-          <p className="auth-subtitle">Es tu primer inicio de sesión. Creá una nueva contraseña segura.</p>
+          <h1 className="auth-title">Configurar Cuenta</h1>
+          <p className="auth-subtitle">Es tu primer inicio de sesión. Por seguridad, cambia tu usuario y contraseña.</p>
         </div>
 
         <form className="auth-form" onSubmit={handleSubmit}>
+          <div className="auth-input-wrapper">
+            <FiActivity className="auth-input-icon" />
+            <input
+              id="cp-username"
+              type="text"
+              className="auth-input"
+              placeholder="Nuevo nombre de usuario (opcional)"
+              value={newUsername}
+              onChange={(e) => setNewUsername(e.target.value)}
+            />
+          </div>
+
           <div className="auth-input-wrapper">
             <FiLock className="auth-input-icon" />
             <input
               id="cp-old"
               type="password"
               className="auth-input"
-              placeholder="Contraseña provisoria"
+              placeholder="Contraseña provisoria actual"
               value={oldPassword}
               onChange={(e) => setOldPassword(e.target.value)}
               required
@@ -93,7 +106,7 @@ export default function ChangePasswordPage() {
           </div>
 
           <button id="cp-submit" type="submit" className="btn btn-primary btn-lg auth-submit" disabled={loading}>
-            {loading ? 'Guardando...' : 'Cambiar Contraseña'}
+            {loading ? 'Guardando...' : 'Actualizar Credenciales'}
             {!loading && <FiArrowRight />}
           </button>
         </form>

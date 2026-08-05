@@ -67,16 +67,19 @@ export const authApi = {
     const admins = getLocal<any>('mock_admins_consultorio');
     const admin = admins.find((a) => a.usuario.trim() === userStr);
     
-    if (admin && data.contrasena === 'sage123') {
-      return {
-        id: admin.id,
-        usuario: admin.usuario,
-        nombre: admin.nombreEmpleado,
-        rol: 'ADMIN_CONSULTORIO',
-        token: 'mock-token-' + admin.id,
-        forcePasswordChange: false,
-        consultorioId: admin.consultorioId,
-      } as LoginResponse;
+    if (admin) {
+      const passwordMatch = admin.contrasena ? admin.contrasena === data.contrasena : data.contrasena === 'sage123';
+      if (passwordMatch) {
+        return {
+          id: admin.id,
+          usuario: admin.usuario,
+          nombre: admin.nombreEmpleado,
+          rol: 'ADMIN_CONSULTORIO',
+          token: 'mock-token-' + admin.id,
+          forcePasswordChange: !admin.contrasena,
+          consultorioId: admin.consultorioId,
+        } as LoginResponse;
+      }
     }
 
     // 3. Si no está local, intentar ir al backend (fallará en Vercel sin API)
@@ -89,8 +92,22 @@ export const authApi = {
   registerEmpleado: (data: { usuario: string; contrasena: string; nombreEmpleado: string; rol: string; nroTelefono?: string; codEspecialidad?: string }) =>
     api.post<string>('/auth/register-empleado', data).then((r) => r.data),
 
-  changePassword: (oldPassword: string, newPassword: string) =>
-    api.put<string>('/auth/change-password', { oldPassword, newPassword }).then((r) => r.data),
+  changeCredentials: async (oldPassword: string, newPassword: string, newUsername?: string) => {
+    // 1. Intentar actualizar en mock local
+    const currentUser = JSON.parse(localStorage.getItem('sage_user') || '{}');
+    if (currentUser?.rol === 'ADMIN_CONSULTORIO') {
+      const admins = getLocal<any>('mock_admins_consultorio');
+      const idx = admins.findIndex((a) => a.id === currentUser.id);
+      if (idx !== -1) {
+        if (newUsername) admins[idx].usuario = newUsername;
+        admins[idx].contrasena = newPassword;
+        setLocal('mock_admins_consultorio', admins);
+        return 'OK';
+      }
+    }
+    // 2. Fallback al backend real
+    return api.put<string>('/auth/change-credentials', { oldPassword, newPassword, newUsername }).then((r) => r.data);
+  },
 };
 
 // ── Turnos ───────────────────────────────────────────
