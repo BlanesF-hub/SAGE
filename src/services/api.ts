@@ -172,8 +172,19 @@ export const consultaApi = {
 
 // ── Doctores ─────────────────────────────────────────
 export const doctorApi = {
-  configurar: (data: ConfigurarDoctorRequest) =>
-    api.put<string>('/api/doctores/configurar', data).then((r) => r.data),
+  configurar: async (data: ConfigurarDoctorRequest) => {
+    const currentUser = JSON.parse(localStorage.getItem('sage_user') || '{}');
+    if (currentUser?.rol === 'DOCTOR') {
+      const doctores = getLocal<any>('mock_doctores');
+      const idx = doctores.findIndex((d) => d.id === currentUser.id);
+      if (idx !== -1) {
+        doctores[idx].configuracion = data;
+        setLocal('mock_doctores', doctores);
+        return 'OK';
+      }
+    }
+    return api.put<string>('/api/doctores/configurar', data).then((r) => r.data);
+  },
 
   listarPorConsultorio: (consultorioId: number) =>
     api.get<Doctor[]>(`/api/consultorio/${consultorioId}/doctores`).then((r) => r.data),
