@@ -1,16 +1,13 @@
 /* ============================================================
    SAGE — Login Page
-   Premium glassmorphism login form with actor selector
    ============================================================ */
 import { useState, FormEvent } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { authApi } from '../services/api';
-import { FiActivity, FiUser, FiLock, FiArrowRight, FiShield, FiBriefcase, FiClipboard, FiUserCheck, FiHeart } from 'react-icons/fi';
+import { FiActivity, FiUser, FiLock, FiArrowRight } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import './AuthPages.css';
-
-
 
 export default function LoginPage() {
   const [usuario, setUsuario] = useState('');
@@ -19,17 +16,19 @@ export default function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const handleLoginWithCredentials = async (userStr: string, passStr: string) => {
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
     setLoading(true);
     try {
-      if (userStr === 'Fgen562' && passStr === 'medFacundo477') {
+      // Superadmin hardcodeado
+      if (usuario.trim() === 'Fgen562' && contrasena === 'medFacundo477') {
         const superAdminData = {
           id: 1,
           usuario: 'Fgen562',
           nombre: 'Facundo (Superadmin)',
           rol: 'ADMIN_GENERAL' as any,
           token: 'superadmin-token',
-          forcePasswordChange: false
+          forcePasswordChange: false,
         };
         login(superAdminData);
         toast.success(`Bienvenido, ${superAdminData.nombre}`);
@@ -37,7 +36,7 @@ export default function LoginPage() {
         return;
       }
 
-      const data = await authApi.login({ usuario: userStr, contrasena: passStr });
+      const data = await authApi.login({ usuario: usuario.trim(), contrasena });
       login(data);
       toast.success(`Bienvenido, ${data.nombre}`);
       if (data.forcePasswordChange) {
@@ -46,22 +45,14 @@ export default function LoginPage() {
         navigate('/');
       }
     } catch (err: any) {
-      toast.error(err.response?.data || 'Credenciales inválidas. Verifica que la base de datos tenga los datos cargados.');
+      toast.error(err?.response?.data || err?.message || 'Credenciales inválidas.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSubmit = (e: FormEvent) => {
-    e.preventDefault();
-    handleLoginWithCredentials(usuario, contrasena);
-  };
-
-
-
   return (
     <div className="auth-page">
-      {/* Background effects */}
       <div className="auth-bg-orb auth-bg-orb--1" />
       <div className="auth-bg-orb auth-bg-orb--2" />
       <div className="auth-bg-orb auth-bg-orb--3" />
@@ -80,8 +71,6 @@ export default function LoginPage() {
           <h1 className="auth-title">SAGE</h1>
           <p className="auth-subtitle">Sistema de Gestión de Clínica Médica</p>
         </div>
-
-
 
         <form className="auth-form" onSubmit={handleSubmit}>
           <div className="auth-input-wrapper">

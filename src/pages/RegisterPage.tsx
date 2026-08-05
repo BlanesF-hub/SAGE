@@ -1,33 +1,29 @@
 /* ============================================================
-   SAGE — Register Page (Multi-actor self-registration)
+   SAGE — Register Page (Pacientes únicamente)
    ============================================================ */
 import { useState, FormEvent } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { authApi } from '../services/api';
-import type { TipoPaciente, Rol } from '../types';
-import { FiActivity, FiArrowRight, FiUser, FiLock, FiShield, FiBriefcase, FiClipboard, FiUserCheck, FiHeart } from 'react-icons/fi';
+import type { TipoPaciente } from '../types';
+import { FiActivity, FiArrowRight } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import './AuthPages.css';
 
 export default function RegisterPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const rolSeleccionado = 'PACIENTE';
 
-  // Form state
   const [form, setForm] = useState({
     usuario: '',
     contrasena: '',
     nombre: '',
     nroTelefono: '',
-    // Campos Paciente
     dniPaciente: '',
     fechaNacimiento: '',
     direccionPaciente: '',
     tipoPaciente: 'PARTICULAR' as TipoPaciente,
     nroAfiliado: '',
     codObraSocial: 'OSDE',
-    nroBeneficiario: '',
     nroBeneficiario: '',
   });
 
@@ -37,7 +33,6 @@ export default function RegisterPage() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
     try {
       await authApi.registerPaciente({
         usuario: form.usuario,
@@ -52,11 +47,10 @@ export default function RegisterPage() {
         codObraSocial: form.tipoPaciente === 'OBRA_SOCIAL' ? form.codObraSocial : undefined,
         nroBeneficiario: form.nroBeneficiario ? Number(form.nroBeneficiario) : undefined,
       });
-      toast.success('¡Paciente registrado exitosamente!');
-
+      toast.success('¡Cuenta creada exitosamente! Ya podés iniciar sesión.');
       navigate('/login');
     } catch (err: any) {
-      toast.error(err.response?.data || 'Error al registrar el actor');
+      toast.error(err?.message || err?.response?.data || 'Error al registrar el paciente');
     } finally {
       setLoading(false);
     }
@@ -70,7 +64,7 @@ export default function RegisterPage() {
       <div className="auth-container auth-container--wide animate-fade-in">
         <div className="auth-nav-tabs">
           <Link to="/login" className="auth-tab">Iniciar Sesión</Link>
-          <button className="auth-tab auth-tab--active">Registrar Actor</button>
+          <button className="auth-tab auth-tab--active">Registrar Paciente</button>
         </div>
 
         <div className="auth-brand">
@@ -78,8 +72,6 @@ export default function RegisterPage() {
           <h1 className="auth-title">Registro de Paciente</h1>
           <p className="auth-subtitle">Completá tus datos para sacar turnos</p>
         </div>
-
-
 
         <form className="auth-form" onSubmit={handleSubmit}>
           <div className="auth-form-grid">
@@ -90,7 +82,7 @@ export default function RegisterPage() {
                 placeholder="Ej. Juan Pérez" />
             </div>
             <div className="input-group">
-              <label htmlFor="reg-usuario">Usuario</label>
+              <label htmlFor="reg-usuario">Nombre de Usuario</label>
               <input id="reg-usuario" className="input-field" required
                 value={form.usuario} onChange={(e) => update('usuario', e.target.value)}
                 placeholder="Ej. jperez" />
@@ -111,70 +103,65 @@ export default function RegisterPage() {
             </div>
           </div>
 
-          {/* CAMPOS ESPECÍFICOS PARA PACIENTE */}
-          {rolSeleccionado === 'PACIENTE' && (
-            <>
-              <div className="auth-form-grid">
-                <div className="input-group">
-                  <label htmlFor="reg-dni">DNI</label>
-                  <input id="reg-dni" className="input-field" type="number" required
-                    value={form.dniPaciente} onChange={(e) => update('dniPaciente', e.target.value)} />
-                </div>
-                <div className="input-group">
-                  <label htmlFor="reg-nacimiento">Fecha de Nacimiento</label>
-                  <input id="reg-nacimiento" className="input-field" type="date" required
-                    value={form.fechaNacimiento} onChange={(e) => update('fechaNacimiento', e.target.value)} />
-                </div>
-              </div>
+          <div className="auth-form-grid">
+            <div className="input-group">
+              <label htmlFor="reg-dni">DNI</label>
+              <input id="reg-dni" className="input-field" type="number" required
+                value={form.dniPaciente} onChange={(e) => update('dniPaciente', e.target.value)} />
+            </div>
+            <div className="input-group">
+              <label htmlFor="reg-nacimiento">Fecha de Nacimiento</label>
+              <input id="reg-nacimiento" className="input-field" type="date" required
+                value={form.fechaNacimiento} onChange={(e) => update('fechaNacimiento', e.target.value)} />
+            </div>
+          </div>
 
-              <div className="input-group">
-                <label htmlFor="reg-direccion">Dirección</label>
-                <input id="reg-direccion" className="input-field"
-                  value={form.direccionPaciente} onChange={(e) => update('direccionPaciente', e.target.value)}
-                  placeholder="Ej. Av. Colón 123" />
-              </div>
+          <div className="input-group">
+            <label htmlFor="reg-direccion">Dirección</label>
+            <input id="reg-direccion" className="input-field"
+              value={form.direccionPaciente} onChange={(e) => update('direccionPaciente', e.target.value)}
+              placeholder="Ej. Av. Colón 123" />
+          </div>
 
+          <div className="input-group">
+            <label htmlFor="reg-tipo">Tipo de Paciente</label>
+            <select id="reg-tipo" className="input-field"
+              value={form.tipoPaciente} onChange={(e) => update('tipoPaciente', e.target.value)}>
+              <option value="PARTICULAR">Particular</option>
+              <option value="OBRA_SOCIAL">Obra Social</option>
+              <option value="PAMI">PAMI</option>
+            </select>
+          </div>
+
+          {form.tipoPaciente === 'OBRA_SOCIAL' && (
+            <div className="auth-form-grid">
               <div className="input-group">
-                <label htmlFor="reg-tipo">Tipo de Paciente</label>
-                <select id="reg-tipo" className="input-field"
-                  value={form.tipoPaciente} onChange={(e) => update('tipoPaciente', e.target.value)}>
-                  <option value="PARTICULAR">Particular</option>
-                  <option value="OBRA_SOCIAL">Obra Social</option>
-                  <option value="PAMI">PAMI</option>
+                <label htmlFor="reg-afiliado">Nro. Afiliado</label>
+                <input id="reg-afiliado" className="input-field" type="number"
+                  value={form.nroAfiliado} onChange={(e) => update('nroAfiliado', e.target.value)} />
+              </div>
+              <div className="input-group">
+                <label htmlFor="reg-os-cod">Obra Social</label>
+                <select id="reg-os-cod" className="input-field"
+                  value={form.codObraSocial} onChange={(e) => update('codObraSocial', e.target.value)}>
+                  <option value="OSDE">OSDE 210</option>
+                  <option value="SWISS">Swiss Medical</option>
+                  <option value="PAMI_OS">PAMI Instituto</option>
                 </select>
               </div>
+            </div>
+          )}
 
-              {form.tipoPaciente === 'OBRA_SOCIAL' && (
-                <div className="auth-form-grid">
-                  <div className="input-group">
-                    <label htmlFor="reg-afiliado">Nro. Afiliado</label>
-                    <input id="reg-afiliado" className="input-field" type="number"
-                      value={form.nroAfiliado} onChange={(e) => update('nroAfiliado', e.target.value)} />
-                  </div>
-                  <div className="input-group">
-                    <label htmlFor="reg-os-cod">Código Obra Social</label>
-                    <select id="reg-os-cod" className="input-field"
-                      value={form.codObraSocial} onChange={(e) => update('codObraSocial', e.target.value)}>
-                      <option value="OSDE">OSDE 210</option>
-                      <option value="SWISS">Swiss Medical</option>
-                      <option value="PAMI_OS">PAMI Instituto</option>
-                    </select>
-                  </div>
-                </div>
-              )}
-
-              {form.tipoPaciente === 'PAMI' && (
-                <div className="input-group">
-                  <label htmlFor="reg-beneficiario">Nro. Beneficiario</label>
-                  <input id="reg-beneficiario" className="input-field" type="number"
-                    value={form.nroBeneficiario} onChange={(e) => update('nroBeneficiario', e.target.value)} />
-                </div>
-              )}
-            </>
+          {form.tipoPaciente === 'PAMI' && (
+            <div className="input-group">
+              <label htmlFor="reg-beneficiario">Nro. Beneficiario</label>
+              <input id="reg-beneficiario" className="input-field" type="number"
+                value={form.nroBeneficiario} onChange={(e) => update('nroBeneficiario', e.target.value)} />
+            </div>
           )}
 
           <button id="reg-submit" type="submit" className="btn btn-primary btn-lg auth-submit" disabled={loading}>
-            {loading ? 'Registrando...' : 'Completar Registro'}
+            {loading ? 'Creando cuenta...' : 'Crear Cuenta'}
             {!loading && <FiArrowRight />}
           </button>
         </form>
