@@ -1,8 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { adminApi, turnoApi } from '../services/api';
-import type { Turno, Consultorio } from '../types';
-import { FiCalendar, FiPlus, FiClock, FiUser, FiActivity } from 'react-icons/fi';
+import { adminApi } from '../services/api';
+import type { Consultorio } from '../types';
+import { FiCalendar, FiPlus, FiClock } from 'react-icons/fi';
+import CustomCalendar from '../components/CustomCalendar';
 import toast from 'react-hot-toast';
 
 // Helpers para leer desde el localStorage mock
@@ -10,7 +11,7 @@ const getLocal = <T,>(key: string): T[] => JSON.parse(localStorage.getItem(key) 
 
 export default function PacienteDashboard() {
   const { user } = useAuth();
-  const [turnos, setTurnos] = useState<Turno[]>([]);
+  const [turnos, setTurnos] = useState<any[]>([]);
   const [consultorios, setConsultorios] = useState<Consultorio[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
@@ -313,41 +314,19 @@ export default function PacienteDashboard() {
                       <option key={d.id} value={d.id}>{d.nombreEmpleado}</option>
                     ))}
                   </select>
-                  {/* PASO 4: Fecha */}
+
+                  {/* PASO 4: Calendario visual */}
                   {selectedDoctorId && (
                     <div className="input-group">
-                      <label htmlFor="st-fecha">4. Fecha</label>
-                      <input
-                        id="st-fecha"
-                        type="date"
-                        className="input-field"
-                        value={selectedFecha}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setSelectedFecha(val);
-                          setSelectedHora('');
-                          if (val) {
-                            const d = new Date(val + 'T00:00:00');
-                            const dia = d.getDay() === 0 ? 7 : d.getDay();
-                            if (!diasQueAtiende.has(dia)) {
-                              toast.error('El médico no atiende ese día. Seleccioná uno de los días disponibles.');
-                              setSelectedFecha('');
-                            }
-                          }
-                        }}
-                        min={new Date().toISOString().split('T')[0]}
-                        required
+                      <label>4. Seleccioná la fecha</label>
+                      <CustomCalendar
+                        diasDisponibles={diasQueAtiende}
+                        selectedDate={selectedFecha}
+                        onChange={(date) => { setSelectedFecha(date); setSelectedHora(''); }}
                       />
-                      {selectedDoctorId && diasQueAtiende.size > 0 && (
-                        <p style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', marginTop: '4px' }}>
-                          📅 Días disponibles: {Array.from(diasQueAtiende).sort().map((d) =>
-                            ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'][d]
-                          ).join(', ')}
-                        </p>
-                      )}
                       {selectedFecha && horariosDisponibles.length === 0 && (
-                        <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '4px' }}>
-                          No hay horarios disponibles para esa fecha (todos ocupados).
+                        <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '8px' }}>
+                          No hay horarios disponibles (todos ocupados).
                         </p>
                       )}
                     </div>

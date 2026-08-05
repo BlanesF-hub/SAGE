@@ -1,0 +1,142 @@
+/* ============================================================
+   CustomCalendar.css — Estilos del calendario visual
+   ============================================================ */
+
+.cal-wrapper {
+  background: var(--bg-card, #1a1f2e);
+  border: 1px solid var(--border-color, rgba(255,255,255,0.08));
+  border-radius: 16px;
+  padding: 16px;
+  margin-top: 4px;
+}
+
+.cal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.cal-month-label {
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--text-primary, #e2e8f0);
+  letter-spacing: 0.02em;
+}
+
+.cal-nav {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  color: var(--text-secondary, #94a3b8);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  font-size: 1rem;
+  transition: background 0.2s, color 0.2s;
+}
+.cal-nav:hover {
+  background: rgba(99,102,241,0.15);
+  color: var(--primary-color, #6366f1);
+}
+
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.cal-day-name {
+  text-align: center;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-secondary, #64748b);
+  padding: 4px 0 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.cal-day {
+  aspect-ratio: 1;
+  border-radius: 10px;
+  border: none;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: transform 0.12s, background 0.18s, box-shadow 0.18s;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Día deshabilitado (no atiende o pasado) */
+.cal-day--disabled {
+  background: transparent;
+  color: rgba(255,255,255,0.15);
+  cursor: not-allowed;
+}
+
+/* Día disponible — verde brillante */
+.cal-day--available {
+  background: rgba(16, 185, 129, 0.12);
+  color: #34d399;
+  border: 1px solid rgba(52, 211, 153, 0.25);
+}
+.cal-day--available:hover {
+  background: rgba(16, 185, 129, 0.28);
+  border-color: rgba(52, 211, 153, 0.55);
+  transform: scale(1.08);
+  box-shadow: 0 0 12px rgba(52, 211, 153, 0.3);
+}
+
+/* Día seleccionado — azul/indigo premium */
+.cal-day--selected {
+  background: linear-gradient(135deg, #6366f1, #4f46e5) !important;
+  color: #ffffff !important;
+  border-color: transparent !important;
+  box-shadow: 0 4px 14px rgba(99,102,241,0.45);
+  transform: scale(1.1);
+}
+.cal-day--selected:hover {
+  transform: scale(1.12);
+}
+
+/* Hoy (no seleccionado) */
+.cal-day--today {
+  border: 1.5px solid rgba(99,102,241,0.5);
+  color: var(--primary-color, #6366f1);
+}
+
+/* Leyenda */
+.cal-legend {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+.cal-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  color: var(--text-secondary, #94a3b8);
+}
+.cal-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+.cal-dot--available {
+  background: #34d399;
+  box-shadow: 0 0 6px rgba(52,211,153,0.5);
+}
+.cal-dot--selected {
+  background: #6366f1;
+  box-shadow: 0 0 6px rgba(99,102,241,0.5);
+}
