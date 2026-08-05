@@ -77,6 +77,7 @@ export default function LoginPage() {
         </div>
 
         <div className="auth-brand">
+          <h2 className="auth-welcome">¡Bienvenido!</h2>
           <div className="auth-logo">
             <FiActivity />
           </div>
