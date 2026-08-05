@@ -161,6 +161,7 @@ export const adminApi = {
   createEstadoConsulta: async (data: { codEc: string; nombreEc: string }) => saveMock('mock_estados_consulta', data),
 
   // Admin Consultorio
+  getAdminsConsultorio: async () => getLocal<any>('mock_admins_consultorio'),
   crearAdminConsultorio: async (data: { usuario: string; nombreEmpleado: string; nroTelefono?: string; consultorioId: number }) => {
     return saveMock('mock_admins_consultorio', data);
   },

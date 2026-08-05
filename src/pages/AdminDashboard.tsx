@@ -18,6 +18,7 @@ export default function AdminDashboard() {
   const [especialidades, setEspecialidades] = useState<Especialidad[]>([]);
   const [tiposTurno, setTiposTurno] = useState<TipoTurno[]>([]);
   const [estadosConsulta, setEstadosConsulta] = useState<EstadoConsulta[]>([]);
+  const [adminsConsultorio, setAdminsConsultorio] = useState<any[]>([]);
 
   // Modales y formularios
   const [modalOpen, setModalOpen] = useState(false);
@@ -56,6 +57,7 @@ export default function AdminDashboard() {
       }
       if (activeTab === 'ADMINS') {
         setConsultorios(await adminApi.getConsultorios());
+        setAdminsConsultorio(await adminApi.getAdminsConsultorio());
       }
     } catch {
       toast.error('Error al cargar datos');
@@ -134,6 +136,7 @@ export default function AdminDashboard() {
       toast.success('Administrador de consultorio creado con contraseña provisional "sage123"');
       setFormAdmin({ usuario: '', nombreEmpleado: '', nroTelefono: '', consultorioId: '' });
       setModalOpen(false);
+      fetchData();
     } catch (err: any) {
       toast.error(err.response?.data || 'Error al crear administrador');
     } finally {
@@ -322,6 +325,31 @@ export default function AdminDashboard() {
                 </table>
               </div>
             </div>
+          </div>
+        ) : activeTab === 'ADMINS' && adminsConsultorio.length > 0 ? (
+          <div className="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Usuario</th>
+                  <th>Contraseña</th>
+                  <th>Nombre Completo</th>
+                  <th>Teléfono</th>
+                  <th>Consultorio ID</th>
+                </tr>
+              </thead>
+              <tbody>
+                {adminsConsultorio.map((adm) => (
+                  <tr key={adm.id}>
+                    <td><strong style={{ color: 'var(--primary-color)' }}>{adm.usuario}</strong></td>
+                    <td><code>sage123</code></td>
+                    <td>{adm.nombreEmpleado}</td>
+                    <td>{adm.nroTelefono || '-'}</td>
+                    <td>{adm.consultorioId}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         ) : (
           <div className="empty-state">
