@@ -61,14 +61,19 @@ export default function PacienteDashboard() {
     });
   }, [selectedConsultorioId, allDoctores]);
 
-  // Especialidades únicas de los médicos del consultorio
+  // Especialidades únicas de los médicos del consultorio (con nombre legible)
   const especialidades = useMemo(() => {
-    const set = new Set<string>();
+    const mockEsp = getLocal<any>('mock_especialidades');
+    const map = new Map<string, string>();
     doctoresDelConsultorio.forEach((d: any) => {
-      const esp = d.configuracion?.codEspecialidad || d.codEspecialidad;
-      if (esp) set.add(esp);
+      const cod = d.configuracion?.codEspecialidad || d.codEspecialidad;
+      if (cod && !map.has(cod)) {
+        // Buscar nombre en mock_especialidades, fallback al código
+        const found = mockEsp.find((e: any) => e.codEspecialidad === cod || e.nombreEspecialidad === cod);
+        map.set(cod, found?.nombreEspecialidad || cod);
+      }
     });
-    return Array.from(set);
+    return Array.from(map.entries()).map(([cod, nombre]) => ({ cod, nombre }));
   }, [doctoresDelConsultorio]);
 
   // Médicos filtrados por especialidad seleccionada
@@ -80,30 +85,47 @@ export default function PacienteDashboard() {
     });
   }, [selectedEspecialidad, doctoresDelConsultorio]);
 
-  // Horarios disponibles: días de agenda del médico seleccionado para la fecha elegida
+  // Días de la semana en los que atiende el médico seleccionado (1=Lun...7=Dom)
+  const diasQueAtiende = useMemo(() => {
+    if (!selectedDoctorId) return new Set<number>();
+    const doctor = allDoctores.find((d: any) => String(d.id) === String(selectedDoctorId));
+    const agenda = doctor?.configuracion?.agenda || [];
+    return new Set<number>(agenda.map((a: any) => Number(a.diaSemana)));
+  }, [selectedDoctorId, allDoctores]);
+
+  // Horarios disponibles: slots de 30 min del médico para la fecha, sin solapamientos
   const horariosDisponibles = useMemo(() => {
     if (!selectedDoctorId || !selectedFecha) return [];
     const doctor = allDoctores.find((d: any) => String(d.id) === String(selectedDoctorId));
     if (!doctor) return [];
     const agenda = doctor.configuracion?.agenda || [];
     const fecha = new Date(selectedFecha + 'T00:00:00');
-    // getDay() devuelve 0=Dom,1=Lun,..., nuestra agenda usa 1=Lun,...,7=Dom
     const diaSemana = fecha.getDay() === 0 ? 7 : fecha.getDay();
     const turnosDia = agenda.filter((a: any) => Number(a.diaSemana) === diaSemana);
     if (turnosDia.length === 0) return [];
 
-    // Generar slots de 15 min dentro de cada bloque de horario
+    // Turnos ya reservados para este médico en esta fecha
+    const turnosExistentes = getLocal<any>('mock_turnos_paciente').filter(
+      (t: any) => String(t.doctorId) === String(selectedDoctorId) &&
+                  t.fechaHoraPlanificado?.startsWith(selectedFecha)
+    );
+    const horasOcupadas = new Set(
+      turnosExistentes.map((t: any) => t.fechaHoraPlanificado?.substring(11, 16))
+    );
+
+    // Generar slots de 30 min
     const slots: string[] = [];
     for (const bloque of turnosDia) {
       const [hIni, mIni] = bloque.horaInicio.split(':').map(Number);
       const [hFin, mFin] = bloque.horaFin.split(':').map(Number);
       let cur = hIni * 60 + mIni;
       const end = hFin * 60 + mFin;
-      while (cur + 15 <= end) {
+      while (cur + 30 <= end) {
         const h = String(Math.floor(cur / 60)).padStart(2, '0');
         const m = String(cur % 60).padStart(2, '0');
-        slots.push(`${h}:${m}`);
-        cur += 15;
+        const slot = `${h}:${m}`;
+        if (!horasOcupadas.has(slot)) slots.push(slot);
+        cur += 30;
       }
     }
     return slots;
@@ -263,8 +285,8 @@ export default function PacienteDashboard() {
                       required
                     >
                       <option value="">Seleccioná una especialidad</option>
-                      {especialidades.map((esp) => (
-                        <option key={esp} value={esp}>{esp}</option>
+                      {especialidades.map(({ cod, nombre }) => (
+                        <option key={cod} value={cod}>{nombre}</option>
                       ))}
                     </select>
                   )}
@@ -291,26 +313,44 @@ export default function PacienteDashboard() {
                       <option key={d.id} value={d.id}>{d.nombreEmpleado}</option>
                     ))}
                   </select>
-                </div>
-              )}
-
-              {/* PASO 4: Fecha */}
-              {selectedDoctorId && (
-                <div className="input-group">
-                  <label htmlFor="st-fecha">4. Fecha</label>
-                  <input
-                    id="st-fecha"
-                    type="date"
-                    className="input-field"
-                    value={selectedFecha}
-                    onChange={(e) => { setSelectedFecha(e.target.value); setSelectedHora(''); }}
-                    min={new Date().toISOString().split('T')[0]}
-                    required
-                  />
-                  {selectedFecha && horariosDisponibles.length === 0 && (
-                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '4px' }}>
-                      El médico no atiende ese día. Probá otra fecha.
-                    </p>
+                  {/* PASO 4: Fecha */}
+                  {selectedDoctorId && (
+                    <div className="input-group">
+                      <label htmlFor="st-fecha">4. Fecha</label>
+                      <input
+                        id="st-fecha"
+                        type="date"
+                        className="input-field"
+                        value={selectedFecha}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setSelectedFecha(val);
+                          setSelectedHora('');
+                          if (val) {
+                            const d = new Date(val + 'T00:00:00');
+                            const dia = d.getDay() === 0 ? 7 : d.getDay();
+                            if (!diasQueAtiende.has(dia)) {
+                              toast.error('El médico no atiende ese día. Seleccioná uno de los días disponibles.');
+                              setSelectedFecha('');
+                            }
+                          }
+                        }}
+                        min={new Date().toISOString().split('T')[0]}
+                        required
+                      />
+                      {selectedDoctorId && diasQueAtiende.size > 0 && (
+                        <p style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', marginTop: '4px' }}>
+                          📅 Días disponibles: {Array.from(diasQueAtiende).sort().map((d) =>
+                            ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'][d]
+                          ).join(', ')}
+                        </p>
+                      )}
+                      {selectedFecha && horariosDisponibles.length === 0 && (
+                        <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '4px' }}>
+                          No hay horarios disponibles para esa fecha (todos ocupados).
+                        </p>
+                      )}
+                    </div>
                   )}
                 </div>
               )}
