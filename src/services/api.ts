@@ -63,21 +63,38 @@ export const authApi = {
     if (userStr === 'doctor' && data.contrasena === 'admin123') return { id: 3, usuario: 'doctor', nombre: 'Dr. Prueba', rol: 'DOCTOR', token: 'mock-token', forcePasswordChange: false, consultorioId: 1 } as LoginResponse;
     if (userStr === 'paciente' && data.contrasena === 'admin123') return { id: 4, usuario: 'paciente', nombre: 'Paciente Prueba', rol: 'PACIENTE', token: 'mock-token', forcePasswordChange: false } as LoginResponse;
 
-    // 2. Buscar en la BD mock local (ej. administradores creados por el superadmin)
+    // 2. Buscar en la BD mock local
     const admins = getLocal<any>('mock_admins_consultorio');
-    const admin = admins.find((a) => a.usuario.trim() === userStr);
+    const secretarios = getLocal<any>('mock_secretarios');
+    const doctores = getLocal<any>('mock_doctores');
     
-    if (admin) {
-      const passwordMatch = admin.contrasena ? admin.contrasena === data.contrasena : data.contrasena === 'sage123';
+    let matchedUser = null;
+    let matchedRol = '';
+    
+    const admin = admins.find((a) => a.usuario.trim() === userStr);
+    if (admin) { matchedUser = admin; matchedRol = 'ADMIN_CONSULTORIO'; }
+    
+    if (!matchedUser) {
+      const sec = secretarios.find((s) => s.usuario.trim() === userStr);
+      if (sec) { matchedUser = sec; matchedRol = 'SECRETARIO'; }
+    }
+    
+    if (!matchedUser) {
+      const doc = doctores.find((d) => d.usuario.trim() === userStr);
+      if (doc) { matchedUser = doc; matchedRol = 'DOCTOR'; }
+    }
+    
+    if (matchedUser) {
+      const passwordMatch = matchedUser.contrasena ? matchedUser.contrasena === data.contrasena : data.contrasena === 'sage123';
       if (passwordMatch) {
         return {
-          id: admin.id,
-          usuario: admin.usuario,
-          nombre: admin.nombreEmpleado,
-          rol: 'ADMIN_CONSULTORIO',
-          token: 'mock-token-' + admin.id,
-          forcePasswordChange: !admin.contrasena,
-          consultorioId: admin.consultorioId,
+          id: matchedUser.id,
+          usuario: matchedUser.usuario,
+          nombre: matchedUser.nombreEmpleado,
+          rol: matchedRol,
+          token: 'mock-token-' + matchedUser.id,
+          forcePasswordChange: !matchedUser.contrasena,
+          consultorioId: matchedUser.consultorioId,
         } as LoginResponse;
       }
     }
@@ -95,14 +112,21 @@ export const authApi = {
   changeCredentials: async (oldPassword: string, newPassword: string, newUsername?: string) => {
     // 1. Intentar actualizar en mock local
     const currentUser = JSON.parse(localStorage.getItem('sage_user') || '{}');
-    if (currentUser?.rol === 'ADMIN_CONSULTORIO') {
-      const admins = getLocal<any>('mock_admins_consultorio');
-      const idx = admins.findIndex((a) => a.id === currentUser.id);
-      if (idx !== -1) {
-        if (newUsername) admins[idx].usuario = newUsername;
-        admins[idx].contrasena = newPassword;
-        setLocal('mock_admins_consultorio', admins);
-        return 'OK';
+    if (currentUser?.rol) {
+      let key = '';
+      if (currentUser.rol === 'ADMIN_CONSULTORIO') key = 'mock_admins_consultorio';
+      if (currentUser.rol === 'SECRETARIO') key = 'mock_secretarios';
+      if (currentUser.rol === 'DOCTOR') key = 'mock_doctores';
+      
+      if (key) {
+        const items = getLocal<any>(key);
+        const idx = items.findIndex((a) => a.id === currentUser.id);
+        if (idx !== -1) {
+          if (newUsername) items[idx].usuario = newUsername;
+          items[idx].contrasena = newPassword;
+          setLocal(key, items);
+          return 'OK';
+        }
       }
     }
     // 2. Fallback al backend real
@@ -211,11 +235,22 @@ export const adminApi = {
 
 // ── Consultorio Admin ────────────────────────────────
 export const consultorioAdminApi = {
-  crearSecretario: (data: { usuario: string; nombreEmpleado: string; nroTelefono?: string; codSecretario: string }) =>
-    api.post('/api/consultorio/secretarios', data).then((r) => r.data),
-
-  crearDoctor: (data: { usuario: string; nombreEmpleado: string; nroTelefono?: string; codDoctor: string }) =>
-    api.post('/api/consultorio/doctores', data).then((r) => r.data),
+  getSecretarios: async () => {
+    const cId = JSON.parse(localStorage.getItem('sage_user') || '{}').consultorioId;
+    return getLocal<any>('mock_secretarios').filter((s) => s.consultorioId === cId);
+  },
+  getDoctores: async () => {
+    const cId = JSON.parse(localStorage.getItem('sage_user') || '{}').consultorioId;
+    return getLocal<any>('mock_doctores').filter((d) => d.consultorioId === cId);
+  },
+  crearSecretario: async (data: { usuario: string; nombreEmpleado: string; nroTelefono?: string; codSecretario: string }) => {
+    const cId = JSON.parse(localStorage.getItem('sage_user') || '{}').consultorioId;
+    return saveMock('mock_secretarios', { ...data, consultorioId: cId });
+  },
+  crearDoctor: async (data: { usuario: string; nombreEmpleado: string; nroTelefono?: string; codDoctor: string }) => {
+    const cId = JSON.parse(localStorage.getItem('sage_user') || '{}').consultorioId;
+    return saveMock('mock_doctores', { ...data, consultorioId: cId });
+  },
 };
 
 // ── Agenda ───────────────────────────────────────────

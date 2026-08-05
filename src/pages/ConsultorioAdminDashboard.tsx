@@ -7,6 +7,21 @@ export default function ConsultorioAdminDashboard() {
   const [roleType, setRoleType] = useState<'DOCTOR' | 'SECRETARIO'>('DOCTOR');
   const [modalOpen, setModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [doctores, setDoctores] = useState<any[]>([]);
+  const [secretarios, setSecretarios] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      setDoctores(await consultorioAdminApi.getDoctores());
+      setSecretarios(await consultorioAdminApi.getSecretarios());
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   // Form states
   const [usuario, setUsuario] = useState('');
@@ -36,6 +51,7 @@ export default function ConsultorioAdminDashboard() {
         toast.success('Secretario creado exitosamente con contraseña provisional "sage123"');
       }
       setModalOpen(false);
+      fetchData();
       // Reset form
       setUsuario('');
       setNombreEmpleado('');
@@ -61,13 +77,68 @@ export default function ConsultorioAdminDashboard() {
       </div>
 
       <div className="card">
-        <div className="empty-state">
-          <FiUsers className="empty-state-icon" />
-          <h3 className="empty-state-title">Gestión de Personal Clínico</h3>
-          <p className="empty-state-desc">
-            Use el botón "Registrar Personal" para agregar médicos o secretarios a la clínica.
-          </p>
-        </div>
+        {doctores.length === 0 && secretarios.length === 0 ? (
+          <div className="empty-state">
+            <FiUsers className="empty-state-icon" />
+            <h3 className="empty-state-title">Gestión de Personal Clínico</h3>
+            <p className="empty-state-desc">
+              Use el botón "Registrar Personal" para agregar médicos o secretarios a la clínica.
+            </p>
+          </div>
+        ) : (
+          <div className="grid-2">
+            <div>
+              <h3 style={{ marginBottom: '12px' }}>Médicos</h3>
+              <div className="table-container">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Usuario</th>
+                      <th>Contraseña</th>
+                      <th>Nombre Completo</th>
+                      <th>Matrícula</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {doctores.map((d) => (
+                      <tr key={d.id}>
+                        <td><strong style={{ color: 'var(--primary-color)' }}>{d.usuario}</strong></td>
+                        <td><code>{d.contrasena || 'sage123'}</code></td>
+                        <td>{d.nombreEmpleado}</td>
+                        <td>{d.codDoctor}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div>
+              <h3 style={{ marginBottom: '12px' }}>Secretarios</h3>
+              <div className="table-container">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Usuario</th>
+                      <th>Contraseña</th>
+                      <th>Nombre Completo</th>
+                      <th>Código</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {secretarios.map((s) => (
+                      <tr key={s.id}>
+                        <td><strong style={{ color: 'var(--primary-color)' }}>{s.usuario}</strong></td>
+                        <td><code>{s.contrasena || 'sage123'}</code></td>
+                        <td>{s.nombreEmpleado}</td>
+                        <td>{s.codSecretario}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {modalOpen && (
