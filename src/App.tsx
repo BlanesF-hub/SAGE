@@ -16,16 +16,16 @@ import ConsultorioAdminDashboard from './pages/ConsultorioAdminDashboard';
 function ProtectedRoute({ children, roles }: { children: JSX.Element; roles?: string[] }) {
   const { user, isAuthenticated } = useAuth();
 
-  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (!isAuthenticated) return <Navigate to="/" replace />;
   if (user?.forcePasswordChange) return <Navigate to="/cambiar-contrasena" replace />;
   if (roles && user && !roles.includes(user.rol)) return <Navigate to="/" replace />;
 
   return children;
 }
 
-function RolRedirect() {
+function RootPage() {
   const { user } = useAuth();
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user) return <LoginPage />;
 
   switch (user.rol) {
     case 'PACIENTE':           return <Navigate to="/paciente" replace />;
@@ -33,21 +33,20 @@ function RolRedirect() {
     case 'DOCTOR':             return <Navigate to="/doctor" replace />;
     case 'ADMIN_GENERAL':      return <Navigate to="/admin" replace />;
     case 'ADMIN_CONSULTORIO':  return <Navigate to="/consultorio-admin" replace />;
-    default:                   return <Navigate to="/login" replace />;
+    default:                   return <LoginPage />;
   }
 }
 
 export default function App() {
   return (
     <Routes>
-      {/* Public */}
-      <Route path="/login" element={<LoginPage />} />
+      {/* Public & Root */}
+      <Route path="/" element={<RootPage />} />
       <Route path="/registro" element={<RegisterPage />} />
       <Route path="/cambiar-contrasena" element={<ChangePasswordPage />} />
 
       {/* Protected */}
       <Route element={<Layout />}>
-        <Route path="/" element={<Navigate to="/login" replace />} />
 
         <Route path="/paciente" element={
           <ProtectedRoute roles={['PACIENTE']}><PacienteDashboard /></ProtectedRoute>
