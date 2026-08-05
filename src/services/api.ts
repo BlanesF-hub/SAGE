@@ -67,6 +67,7 @@ export const authApi = {
     const admins = getLocal<any>('mock_admins_consultorio');
     const secretarios = getLocal<any>('mock_secretarios');
     const doctores = getLocal<any>('mock_doctores');
+    const pacientes = getLocal<any>('mock_pacientes');
     
     let matchedUser = null;
     let matchedRol = '';
@@ -82,6 +83,11 @@ export const authApi = {
     if (!matchedUser) {
       const doc = doctores.find((d) => d.usuario.trim() === userStr);
       if (doc) { matchedUser = doc; matchedRol = 'DOCTOR'; }
+    }
+
+    if (!matchedUser) {
+      const pac = pacientes.find((p) => p.usuario.trim() === userStr);
+      if (pac) { matchedUser = pac; matchedRol = 'PACIENTE'; }
     }
     
     if (matchedUser) {
@@ -104,8 +110,10 @@ export const authApi = {
     return api.post<LoginResponse>('/auth/login', data).then((r) => r.data);
   },
 
-  registerPaciente: (data: RegisterPacienteRequest) =>
-    api.post<string>('/auth/register-paciente', data).then((r) => r.data),
+  registerPaciente: async (data: RegisterPacienteRequest) => {
+    saveMock('mock_pacientes', { ...data, rol: 'PACIENTE' });
+    return 'OK';
+  },
 
   registerEmpleado: (data: { usuario: string; contrasena: string; nombreEmpleado: string; rol: string; nroTelefono?: string; codEspecialidad?: string }) =>
     api.post<string>('/auth/register-empleado', data).then((r) => r.data),
