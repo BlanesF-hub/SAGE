@@ -36,12 +36,18 @@ api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
 });
 
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Si la respuesta es un HTML (pasa en Vercel cuando no hay backend configurado), rechazar para evitar crasheos de .map()
+    if (typeof response.data === 'string' && response.data.trim().toLowerCase().startsWith('<!doctype html>')) {
+      return Promise.reject(new Error('Backend no conectado. Vercel retornó HTML.'));
+    }
+    return response;
+  },
   (error: AxiosError) => {
     if (error.response?.status === 401) {
       localStorage.removeItem('sage_token');
       localStorage.removeItem('sage_user');
-      window.location.href = '/login';
+      window.location.href = '/';
     }
     return Promise.reject(error);
   }
