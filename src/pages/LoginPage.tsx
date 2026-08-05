@@ -10,20 +10,7 @@ import { FiActivity, FiUser, FiLock, FiArrowRight, FiShield, FiBriefcase, FiClip
 import toast from 'react-hot-toast';
 import './AuthPages.css';
 
-interface DemoActor {
-  label: string;
-  roleName: string;
-  usuario: string;
-  contrasena: string;
-  icon: JSX.Element;
-  color: string;
-}
 
-const DEMO_ACTORS: DemoActor[] = [
-  { label: 'Secretario', roleName: 'Recepción y turnos', usuario: 'secretario', contrasena: 'admin123', icon: <FiClipboard />, color: '#3b82f6' },
-  { label: 'Doctor', roleName: 'Médico especialista', usuario: 'doctor', contrasena: 'admin123', icon: <FiUserCheck />, color: '#10b981' },
-  { label: 'Paciente', roleName: 'Atención médica', usuario: 'paciente', contrasena: 'admin123', icon: <FiHeart />, color: '#f59e0b' },
-];
 
 export default function LoginPage() {
   const [usuario, setUsuario] = useState('');
@@ -70,11 +57,7 @@ export default function LoginPage() {
     handleLoginWithCredentials(usuario, contrasena);
   };
 
-  const selectActor = (actor: DemoActor) => {
-    setUsuario(actor.usuario);
-    setContrasena(actor.contrasena);
-    handleLoginWithCredentials(actor.usuario, actor.contrasena);
-  };
+
 
   return (
     <div className="auth-page">
@@ -86,7 +69,7 @@ export default function LoginPage() {
       <div className="auth-container animate-fade-in">
         <div className="auth-nav-tabs">
           <button className="auth-tab auth-tab--active">Iniciar Sesión</button>
-          <Link to="/registro" className="auth-tab">Registrar Actor</Link>
+          <Link to="/registro" className="auth-tab">Registrar Paciente</Link>
         </div>
 
         <div className="auth-brand">
@@ -98,32 +81,7 @@ export default function LoginPage() {
           <p className="auth-subtitle">Sistema de Gestión de Clínica Médica</p>
         </div>
 
-        {/* Quick Actor Selector */}
-        <div className="actors-section">
-          <span className="actors-title">Ingreso rápido por Actor:</span>
-          <div className="actors-grid">
-            {DEMO_ACTORS.map((actor) => (
-              <button
-                key={actor.usuario}
-                type="button"
-                className="actor-card"
-                style={{ '--actor-accent': actor.color } as React.CSSProperties}
-                onClick={() => selectActor(actor)}
-                title={`Ingresar como ${actor.label}`}
-              >
-                <div className="actor-icon">{actor.icon}</div>
-                <div className="actor-info">
-                  <span className="actor-name">{actor.label}</span>
-                  <span className="actor-desc">{actor.usuario}</span>
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
 
-        <div className="auth-divider">
-          <span>o ingresá tus credenciales</span>
-        </div>
 
         <form className="auth-form" onSubmit={handleSubmit}>
           <div className="auth-input-wrapper">
@@ -164,7 +122,7 @@ export default function LoginPage() {
         </form>
 
         <p className="auth-footer">
-          ¿Querés registrar un nuevo usuario? <Link to="/registro">Registrar un Actor</Link>
+          ¿No tenés cuenta? <Link to="/registro">Registrar Paciente</Link>
         </p>
       </div>
     </div>
