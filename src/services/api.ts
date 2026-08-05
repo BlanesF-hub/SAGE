@@ -55,8 +55,26 @@ api.interceptors.response.use(
 
 // ── Auth ─────────────────────────────────────────────
 export const authApi = {
-  login: (data: LoginRequest) =>
-    api.post<LoginResponse>('/auth/login', data).then((r) => r.data),
+  login: async (data: LoginRequest) => {
+    // Intentar buscar en la BD mock local primero (ej. administradores creados)
+    const admins = getLocal<any>('mock_admins_consultorio');
+    const admin = admins.find((a) => a.usuario === data.usuario);
+    
+    if (admin && data.contrasena === 'sage123') {
+      return {
+        id: admin.id,
+        usuario: admin.usuario,
+        nombre: admin.nombreEmpleado,
+        rol: 'ADMIN_CONSULTORIO',
+        token: 'mock-token-' + admin.id,
+        forcePasswordChange: false,
+        consultorioId: admin.consultorioId,
+      } as LoginResponse;
+    }
+
+    // Si no está local, intentar ir al backend (fallará en Vercel sin API)
+    return api.post<LoginResponse>('/auth/login', data).then((r) => r.data);
+  },
 
   registerPaciente: (data: RegisterPacienteRequest) =>
     api.post<string>('/auth/register-paciente', data).then((r) => r.data),
