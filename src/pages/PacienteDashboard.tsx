@@ -112,14 +112,23 @@ export default function PacienteDashboard() {
     const turnosDia = agenda.filter((a: any) => Number(a.diaSemana) === diaSemana);
     if (turnosDia.length === 0) return [];
 
-    // Turnos ya reservados para este médico en esta fecha
-    const turnosExistentes = getLocal<any>('mock_turnos_paciente').filter(
+    // Turnos ya reservados en esta fecha (médico u ocupados por el mismo paciente)
+    const mockTurnos = getLocal<any>('mock_turnos_paciente');
+    const turnosDoctorExistentes = mockTurnos.filter(
       (t: any) => String(t.doctorId) === String(selectedDoctorId) &&
+                  t.estado !== 'CANCELADO' &&
                   t.fechaHoraPlanificado?.startsWith(selectedFecha)
     );
-    const horasOcupadas = new Set(
-      turnosExistentes.map((t: any) => t.fechaHoraPlanificado?.substring(11, 16))
+    const turnosPacienteExistentes = mockTurnos.filter(
+      (t: any) => t.pacienteId === user?.id &&
+                  t.estado !== 'CANCELADO' &&
+                  t.fechaHoraPlanificado?.startsWith(selectedFecha)
     );
+
+    const horasOcupadas = new Set([
+      ...turnosDoctorExistentes.map((t: any) => t.fechaHoraPlanificado?.substring(11, 16)),
+      ...turnosPacienteExistentes.map((t: any) => t.fechaHoraPlanificado?.substring(11, 16)),
+    ]);
 
     // Generar slots de 30 min
     const slots: string[] = [];
@@ -137,7 +146,7 @@ export default function PacienteDashboard() {
       }
     }
     return slots;
-  }, [selectedDoctorId, selectedFecha, allDoctores]);
+  }, [selectedDoctorId, selectedFecha, allDoctores, user]);
 
   const resetForm = () => {
     setSelectedConsultorioId('');
@@ -156,6 +165,45 @@ export default function PacienteDashboard() {
       const doctor = allDoctores.find((d: any) => String(d.id) === String(selectedDoctorId));
       const consultorio = consultorios.find((c) => String(c.id) === String(selectedConsultorioId));
       const espNombre = resolveEspecialidadNombre(selectedEspecialidad);
+
+      const storedTurnos = getLocal<any>('mock_turnos_paciente').filter(
+        (t: any) => t.pacienteId === user.id && t.estado !== 'CANCELADO'
+      );
+
+      // Regla 1: Un paciente no puede tener más de un turno para la misma especialidad en estado PENDIENTE
+      const tienePendienteMismaEsp = storedTurnos.some((t: any) => {
+        if (t.estado !== 'PENDIENTE') return false;
+        const espTurno = t.doctor?.especialidad?.codEspecialidad || t.doctor?.especialidad?.nombreEspecialidad;
+        const espNombreTurno = resolveEspecialidadNombre(espTurno);
+        return (
+          espTurno === selectedEspecialidad ||
+          espNombreTurno === espNombre ||
+          espTurno === espNombre
+        );
+      });
+
+      if (tienePendienteMismaEsp) {
+        toast.error(`Ya tenés un turno en estado PENDIENTE para la especialidad "${espNombre}".`);
+        setSubmitting(false);
+        return;
+      }
+
+      // Regla 2: Si tiene turnos de distintas especialidades, no pueden solaparse los horarios
+      const fechaHoraNuevaInicio = new Date(`${selectedFecha}T${selectedHora}:00`).getTime();
+      const fechaHoraNuevaFin = fechaHoraNuevaInicio + 30 * 60 * 1000;
+
+      const tieneSolapamiento = storedTurnos.some((t: any) => {
+        const inicioExistente = new Date(t.fechaHoraPlanificado).getTime();
+        const finExistente = inicioExistente + 30 * 60 * 1000;
+        return fechaHoraNuevaInicio < finExistente && fechaHoraNuevaFin > inicioExistente;
+      });
+
+      if (tieneSolapamiento) {
+        toast.error('El horario seleccionado se solapa con otro turno que ya tenés reservado.');
+        setSubmitting(false);
+        return;
+      }
+
       const nuevoTurno: any = {
         id: Date.now(),
         pacienteId: user.id,
