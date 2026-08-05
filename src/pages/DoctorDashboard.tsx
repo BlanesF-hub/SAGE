@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { doctorApi, consultaApi, adminApi } from '../services/api';
+import { doctorApi, consultaApi, adminApi, consultorioAdminApi } from '../services/api';
 import type { Consulta, Especialidad } from '../types';
 import { FiActivity, FiUser, FiClock, FiAlertTriangle, FiCheck, FiSettings } from 'react-icons/fi';
 import toast from 'react-hot-toast';
@@ -22,7 +22,7 @@ export default function DoctorDashboard() {
   const [selectedEspecialidad, setSelectedEspecialidad] = useState('');
   const [edadMinima, setEdadMinima] = useState('');
   const [edadMaxima, setEdadMaxima] = useState(''); // Empty string = sin máximo
-  const [agendaRows, setAgendaRows] = useState<{ diaSemana: number; horaInicio: string; horaFin: string; tiempoMaximoEspera: number }[]>([]);
+  const [agendaRows, setAgendaRows] = useState<{ diaSemana: number; horaInicio: string; horaFin: string; tiempoMaximoEspera: number; salaId?: number }[]>([]);
 
   // Action states
   const [prioridad, setPrioridad] = useState('1');
