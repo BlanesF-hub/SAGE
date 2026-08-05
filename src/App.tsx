@@ -47,7 +47,7 @@ export default function App() {
 
       {/* Protected */}
       <Route element={<Layout />}>
-        <Route path="/" element={<RolRedirect />} />
+        <Route path="/" element={<Navigate to="/login" replace />} />
 
         <Route path="/paciente" element={
           <ProtectedRoute roles={['PACIENTE']}><PacienteDashboard /></ProtectedRoute>
