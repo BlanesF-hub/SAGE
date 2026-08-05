@@ -25,6 +25,7 @@ export default function ConsultorioAdminDashboard() {
 
   // Form states
   const [usuario, setUsuario] = useState('');
+  const [contrasena, setContrasena] = useState('');
   const [nombreEmpleado, setNombreEmpleado] = useState('');
   const [nroTelefono, setNroTelefono] = useState('');
   const [codPersonal, setCodPersonal] = useState(''); // codDoctor or codSecretario
@@ -36,24 +37,27 @@ export default function ConsultorioAdminDashboard() {
       if (roleType === 'DOCTOR') {
         await consultorioAdminApi.crearDoctor({
           usuario,
+          contrasena,
           nombreEmpleado,
           nroTelefono: nroTelefono || undefined,
           codDoctor: codPersonal,
         });
-        toast.success('Médico creado exitosamente con contraseña provisional "sage123"');
+        toast.success('Médico creado exitosamente con contraseña provisional');
       } else {
         await consultorioAdminApi.crearSecretario({
           usuario,
+          contrasena,
           nombreEmpleado,
           nroTelefono: nroTelefono || undefined,
           codSecretario: codPersonal,
         });
-        toast.success('Secretario creado exitosamente con contraseña provisional "sage123"');
+        toast.success('Secretario creado exitosamente con contraseña provisional');
       }
       setModalOpen(false);
       fetchData();
       // Reset form
       setUsuario('');
+      setContrasena('');
       setNombreEmpleado('');
       setNroTelefono('');
       setCodPersonal('');
@@ -180,6 +184,18 @@ export default function ConsultorioAdminDashboard() {
                   value={usuario}
                   onChange={(e) => setUsuario(e.target.value)}
                   placeholder="Ej: jperez"
+                  required
+                />
+              </div>
+
+              <div className="input-group">
+                <label htmlFor="staff-pass">Contraseña Provisional</label>
+                <input
+                  id="staff-pass"
+                  className="input-field"
+                  value={contrasena}
+                  onChange={(e) => setContrasena(e.target.value)}
+                  placeholder="Ej: admin123"
                   required
                 />
               </div>

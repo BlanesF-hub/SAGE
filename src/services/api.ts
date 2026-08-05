@@ -85,15 +85,16 @@ export const authApi = {
     }
     
     if (matchedUser) {
-      const passwordMatch = matchedUser.contrasena ? matchedUser.contrasena === data.contrasena : data.contrasena === 'sage123';
-      if (passwordMatch) {
+      const userPass = matchedUser.contrasena || 'sage123';
+      if (userPass === data.contrasena) {
+        const isForce = matchedUser.esProvisoria !== false;
         return {
           id: matchedUser.id,
           usuario: matchedUser.usuario,
           nombre: matchedUser.nombreEmpleado,
           rol: matchedRol,
           token: 'mock-token-' + matchedUser.id,
-          forcePasswordChange: !matchedUser.contrasena,
+          forcePasswordChange: isForce,
           consultorioId: matchedUser.consultorioId,
         } as LoginResponse;
       }
@@ -124,6 +125,7 @@ export const authApi = {
         if (idx !== -1) {
           if (newUsername) items[idx].usuario = newUsername;
           items[idx].contrasena = newPassword;
+          items[idx].esProvisoria = false;
           setLocal(key, items);
           return 'OK';
         }
@@ -228,8 +230,8 @@ export const adminApi = {
 
   // Admin Consultorio
   getAdminsConsultorio: async () => getLocal<any>('mock_admins_consultorio'),
-  crearAdminConsultorio: async (data: { usuario: string; nombreEmpleado: string; nroTelefono?: string; consultorioId: number }) => {
-    return saveMock('mock_admins_consultorio', data);
+  crearAdminConsultorio: async (data: { usuario: string; contrasena: string; nombreEmpleado: string; nroTelefono?: string; consultorioId: number }) => {
+    return saveMock('mock_admins_consultorio', { ...data, esProvisoria: true });
   },
 };
 
@@ -243,13 +245,13 @@ export const consultorioAdminApi = {
     const cId = JSON.parse(localStorage.getItem('sage_user') || '{}').consultorioId;
     return getLocal<any>('mock_doctores').filter((d) => d.consultorioId === cId);
   },
-  crearSecretario: async (data: { usuario: string; nombreEmpleado: string; nroTelefono?: string; codSecretario: string }) => {
+  crearSecretario: async (data: { usuario: string; contrasena: string; nombreEmpleado: string; nroTelefono?: string; codSecretario: string }) => {
     const cId = JSON.parse(localStorage.getItem('sage_user') || '{}').consultorioId;
-    return saveMock('mock_secretarios', { ...data, consultorioId: cId });
+    return saveMock('mock_secretarios', { ...data, consultorioId: cId, esProvisoria: true });
   },
-  crearDoctor: async (data: { usuario: string; nombreEmpleado: string; nroTelefono?: string; codDoctor: string }) => {
+  crearDoctor: async (data: { usuario: string; contrasena: string; nombreEmpleado: string; nroTelefono?: string; codDoctor: string }) => {
     const cId = JSON.parse(localStorage.getItem('sage_user') || '{}').consultorioId;
-    return saveMock('mock_doctores', { ...data, consultorioId: cId });
+    return saveMock('mock_doctores', { ...data, consultorioId: cId, esProvisoria: true });
   },
 };
 

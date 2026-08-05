@@ -31,7 +31,7 @@ export default function AdminDashboard() {
   const [formConsultorio, setFormConsultorio] = useState({ codConsultorio: '', nombreConsultorio: '', direccionConsultorio: '', localidadId: '' });
   const [formObraSocial, setFormObraSocial] = useState({ codObraSocial: '', nombreObraSocial: '' });
   const [formEspecialidad, setFormEspecialidad] = useState({ codEspecialidad: '', nombreEspecialidad: '' });
-  const [formAdmin, setFormAdmin] = useState({ usuario: '', nombreEmpleado: '', nroTelefono: '', consultorioId: '' });
+  const [formAdmin, setFormAdmin] = useState({ usuario: '', contrasena: '', nombreEmpleado: '', nroTelefono: '', consultorioId: '' });
 
   useEffect(() => {
     fetchData();
@@ -129,12 +129,13 @@ export default function AdminDashboard() {
     try {
       await adminApi.crearAdminConsultorio({
         usuario: formAdmin.usuario,
+        contrasena: formAdmin.contrasena,
         nombreEmpleado: formAdmin.nombreEmpleado,
         nroTelefono: formAdmin.nroTelefono || undefined,
         consultorioId: Number(formAdmin.consultorioId),
       });
-      toast.success('Administrador de consultorio creado con contraseña provisional "sage123"');
-      setFormAdmin({ usuario: '', nombreEmpleado: '', nroTelefono: '', consultorioId: '' });
+      toast.success('Administrador de consultorio creado con contraseña provisional');
+      setFormAdmin({ usuario: '', contrasena: '', nombreEmpleado: '', nroTelefono: '', consultorioId: '' });
       setModalOpen(false);
       fetchData();
     } catch (err: any) {
@@ -450,6 +451,11 @@ export default function AdminDashboard() {
                   <label htmlFor="ad-adm-usr">Nombre de Usuario</label>
                   <input id="ad-adm-usr" className="input-field" required
                     value={formAdmin.usuario} onChange={(e) => setFormAdmin((p) => ({ ...p, usuario: e.target.value }))} />
+                </div>
+                <div className="input-group">
+                  <label htmlFor="ad-adm-pass">Contraseña Provisional</label>
+                  <input id="ad-adm-pass" className="input-field" required
+                    value={formAdmin.contrasena} onChange={(e) => setFormAdmin((p) => ({ ...p, contrasena: e.target.value }))} />
                 </div>
                 <div className="input-group">
                   <label htmlFor="ad-adm-nom">Nombre Completo</label>
