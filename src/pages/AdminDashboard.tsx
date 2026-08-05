@@ -342,7 +342,7 @@ export default function AdminDashboard() {
                 {adminsConsultorio.map((adm) => (
                   <tr key={adm.id}>
                     <td><strong style={{ color: 'var(--primary-color)' }}>{adm.usuario}</strong></td>
-                    <td><code>sage123</code></td>
+                    <td><code>{adm.contrasena || 'sage123'}</code></td>
                     <td>{adm.nombreEmpleado}</td>
                     <td>{adm.nroTelefono || '-'}</td>
                     <td>{adm.consultorioId}</td>
