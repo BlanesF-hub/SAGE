@@ -256,6 +256,52 @@ export default function PacienteDashboard() {
     return true;
   };
 
+  const handleEspecialidadChange = (espCod: string) => {
+    if (!espCod) {
+      setSelectedEspecialidad('');
+      setSelectedDoctorId('');
+      setSelectedFecha('');
+      setSelectedHora('');
+      return;
+    }
+
+    const espNombre = resolveEspecialidadNombre(espCod);
+
+    // Regla: Un paciente no puede tener más de un turno para la misma especialidad en estado PENDIENTE
+    const storedTurnos = turnos.filter(
+      (t: any) => t.pacienteId === user?.id && t.estado !== 'CANCELADO'
+    );
+
+    const tienePendienteMismaEsp = storedTurnos.some((t: any) => {
+      if (t.estado !== 'PENDIENTE') return false;
+      const espTurno =
+        t.especialidadCod ||
+        t.especialidadNombre ||
+        t.doctor?.especialidad?.codEspecialidad ||
+        t.doctor?.especialidad?.nombreEspecialidad;
+      const espNombreTurno = resolveEspecialidadNombre(espTurno);
+      return (
+        espTurno === espCod ||
+        espNombreTurno === espNombre ||
+        espTurno === espNombre
+      );
+    });
+
+    if (tienePendienteMismaEsp) {
+      toast.error(`Ya posee un turno registrado en estado PENDIENTE para la especialidad "${espNombre}".`);
+      setSelectedEspecialidad('');
+      setSelectedDoctorId('');
+      setSelectedFecha('');
+      setSelectedHora('');
+      return;
+    }
+
+    setSelectedEspecialidad(espCod);
+    setSelectedDoctorId('');
+    setSelectedFecha('');
+    setSelectedHora('');
+  };
+
   const handleDoctorChange = (docId: string) => {
     if (!docId) {
       setSelectedDoctorId('');
@@ -541,12 +587,7 @@ export default function PacienteDashboard() {
                       id="st-especialidad"
                       className="input-field"
                       value={selectedEspecialidad}
-                      onChange={(e) => {
-                        setSelectedEspecialidad(e.target.value);
-                        setSelectedDoctorId('');
-                        setSelectedFecha('');
-                        setSelectedHora('');
-                      }}
+                      onChange={(e) => handleEspecialidadChange(e.target.value)}
                       required
                     >
                       <option value="">Seleccioná una especialidad</option>
