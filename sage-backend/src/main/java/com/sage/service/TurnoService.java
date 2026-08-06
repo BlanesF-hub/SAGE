@@ -48,10 +48,23 @@ public class TurnoService {
         Doctor doctor = doctorRepository.findById(doctorId)
                 .orElseThrow(() -> new IllegalArgumentException("Doctor no encontrado"));
 
-        // 1. Comprobación de edad
+        // Validar que el paciente no tenga turnos pendientes para la misma especialidad
+        if (doctor.getEspecialidad() != null && doctor.getEspecialidad().getId() != null) {
+            List<Turno> pendientesMismaEspecialidad = repository.findPendingTurnosByPacienteAndEspecialidad(
+                    pacienteId, doctor.getEspecialidad().getId());
+            if (!pendientesMismaEspecialidad.isEmpty()) {
+                throw new IllegalArgumentException("El paciente ya tiene un turno pendiente para la especialidad: " +
+                        doctor.getEspecialidad().getNombreEspecialidad());
+            }
+        }
+
+        // 1. ComprobaciÃ³n de edad
         int edad = paciente.getEdad();
         if (doctor.getEdadMinima() != null && edad < doctor.getEdadMinima()) {
-            throw new IllegalArgumentException("El paciente no cumple con la edad mínima requerida por el doctor (" + doctor.getEdadMinima() + " años)");
+            throw new IllegalArgumentException("El paciente no cumple con la edad mÃ­nima requerida por el doctor (" + doctor.getEdadMinima() + " aÃ±os)");
+        }
+        if (doctor.getEdadMaxima() != null && edad > doctor.getEdadMaxima()) {
+            throw new IllegalArgumentException("El paciente supera la edad mÃ¡xima permitida por el doctor (" + doctor.getEdadMaxima() + " aÃ±os)");
         }
         if (doctor.getEdadMaxima() != null && edad > doctor.getEdadMaxima()) {
             throw new IllegalArgumentException("El paciente supera la edad máxima permitida por el doctor (" + doctor.getEdadMaxima() + " años)");
