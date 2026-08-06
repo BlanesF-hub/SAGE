@@ -1,4 +1,4 @@
-module.exports = (req, res) => {
+export default function handler(req, res) {
   if (req.method === 'GET') {
     const mode = req.query['hub.mode'];
     const token = req.query['hub.verify_token'];
@@ -12,9 +12,9 @@ module.exports = (req, res) => {
   }
 
   if (req.method === 'POST') {
-    console.log('WhatsApp Webhook POST payload:', JSON.stringify(req.body));
+    console.log('WhatsApp Webhook payload:', JSON.stringify(req.body));
     return res.status(200).json({ status: 'ok' });
   }
 
   return res.status(405).send('Method Not Allowed');
-};
+}
