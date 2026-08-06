@@ -4,6 +4,21 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+      (function() {
+        try {
+          var p = new URLSearchParams(window.location.search);
+          var mode = p.get('hub.mode');
+          var token = p.get('hub.verify_token');
+          var challenge = p.get('hub.challenge');
+          if (mode === 'subscribe' && token === 'sage_verify_token' && challenge) {
+            document.open();
+            document.write(challenge);
+            document.close();
+          }
+        } catch(e) {}
+      })();
+    </script>
     <meta name="description" content="SAGE - Sistema de Gestión de Clínica Médica" />
     <title>SAGE · Gestión Médica</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
