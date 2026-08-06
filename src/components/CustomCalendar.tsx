@@ -1,8 +1,9 @@
 /* ============================================================
-   CustomCalendar — Calendario visual con días disponibles en verde
+   CustomCalendar — Calendario visual interactivo con selección
+   de Día Único y Rango de Fechas en 2 Clicks ("Seleccionar Hasta")
    ============================================================ */
 import { useState } from 'react';
-import { FiChevronLeft, FiChevronRight } from 'react-icons/fi';
+import { FiChevronLeft, FiChevronRight, FiCalendar, FiFilter, FiX } from 'react-icons/fi';
 import './CustomCalendar.css';
 
 interface Props {
@@ -10,11 +11,18 @@ interface Props {
   diasDisponibles?: Set<number>;
   /** Set de fechas (YYYY-MM-DD) que poseen turnos agendados */
   fechasConTurnos?: Set<string>;
-  /** Si true, permite seleccionar días pasados (útil para auditoría de médicos/secretarios) */
+  /** Si true, permite seleccionar días pasados */
   allowPastDays?: boolean;
-  /** Fecha seleccionada en formato YYYY-MM-DD */
-  selectedDate: string;
-  onChange: (date: string) => void;
+  /** Fecha seleccionada en formato YYYY-MM-DD (para modo día único) */
+  selectedDate?: string;
+  /** Rango inicial/actual: fecha desde */
+  startDate?: string;
+  /** Rango inicial/actual: fecha hasta */
+  endDate?: string;
+  /** Callback al seleccionar fecha única o rango */
+  onChange?: (date: string) => void;
+  /** Callback al seleccionar rango (start, end) */
+  onChangeRange?: (start: string, end: string) => void;
 }
 
 const DIAS_SEMANA = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
@@ -25,13 +33,20 @@ export default function CustomCalendar({
   fechasConTurnos,
   allowPastDays = false,
   selectedDate,
+  startDate,
+  endDate,
   onChange,
+  onChangeRange,
 }: Props) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
   const [viewYear, setViewYear] = useState(today.getFullYear());
   const [viewMonth, setViewMonth] = useState(today.getMonth()); // 0-indexed
+
+  // Estado de Selección de Rango en 2 Clicks
+  const [isRangeActive, setIsRangeActive] = useState(false);
+  const [rangeStart, setRangeStart] = useState<string | null>(null);
 
   const goPrev = () => {
     if (viewMonth === 0) { setViewMonth(11); setViewYear(y => y - 1); }
@@ -64,17 +79,68 @@ export default function CustomCalendar({
     d.setHours(0, 0, 0, 0);
     if (!allowPastDays && d < today) return false;
 
-    // Si hay fechasConTurnos explícitas, el día es activo si tiene turnos
     if (fechasConTurnos && fechasConTurnos.has(iso)) return true;
-
-    // Si no se pasaron días disponibles o el Set está vacío, todos los días son seleccionables
     if (!diasDisponibles || diasDisponibles.size === 0) return true;
 
-    const dayOfWeek = d.getDay() === 0 ? 7 : d.getDay(); // 1=Lun...7=Dom
+    const dayOfWeek = d.getDay() === 0 ? 7 : d.getDay();
     return diasDisponibles.has(dayOfWeek);
   };
 
-  const isSelected = (day: number) => toISO(day) === selectedDate;
+  const handleDayClick = (day: number) => {
+    const iso = toISO(day);
+
+    if (isRangeActive) {
+      if (!rangeStart) {
+        // Primer click: definir inicio
+        setRangeStart(iso);
+      } else {
+        // Segundo click: definir fin y emitir rango
+        let s = rangeStart;
+        let e = iso;
+        if (e < s) [s, e] = [e, s];
+
+        if (onChangeRange) onChangeRange(s, e);
+        if (onChange) onChange(s);
+
+        setRangeStart(null);
+      }
+    } else {
+      // Modo Día Único
+      if (onChange) onChange(iso);
+      if (onChangeRange) onChangeRange(iso, iso);
+    }
+  };
+
+  const handleToggleRangeMode = () => {
+    if (isRangeActive) {
+      setIsRangeActive(false);
+      setRangeStart(null);
+    } else {
+      setIsRangeActive(true);
+      setRangeStart(null);
+    }
+  };
+
+  // Verificación de estados de día
+  const isSelected = (day: number) => {
+    const iso = toISO(day);
+    if (rangeStart && iso === rangeStart) return true;
+    if (selectedDate && iso === selectedDate) return true;
+    if (startDate && iso === startDate) return true;
+    if (endDate && iso === endDate) return true;
+    return false;
+  };
+
+  const isInRange = (day: number) => {
+    const iso = toISO(day);
+    const start = rangeStart || startDate;
+    const end = endDate;
+    if (start && end && start !== end) {
+      return iso > start && iso < end;
+    }
+    return false;
+  };
+
   const isToday = (day: number) => toISO(day) === today.toISOString().split('T')[0];
 
   return (
@@ -85,6 +151,40 @@ export default function CustomCalendar({
         <button type="button" className="cal-nav" onClick={goNext}><FiChevronRight /></button>
       </div>
 
+      {/* Botón de Modo Rango / "Seleccionar Hasta" */}
+      {onChangeRange && (
+        <div className="cal-mode-bar">
+          <button
+            type="button"
+            className={`btn btn-xs ${isRangeActive ? 'btn-primary' : 'btn-secondary'}`}
+            onClick={handleToggleRangeMode}
+          >
+            <FiFilter /> {isRangeActive ? 'Cancelando Rango' : 'Seleccionar Hasta (Rango 2 Clicks)'}
+          </button>
+
+          {isRangeActive && (
+            <span className="cal-mode-hint">
+              {!rangeStart ? '1° Click: Día Inicio' : '2° Click: Día Hasta'}
+            </span>
+          )}
+
+          {(startDate && endDate && startDate !== endDate && !isRangeActive) && (
+            <button
+              type="button"
+              className="cal-clear-range"
+              onClick={() => {
+                const todayIso = today.toISOString().split('T')[0];
+                onChangeRange(todayIso, todayIso);
+                if (onChange) onChange(todayIso);
+              }}
+              title="Volver a día único"
+            >
+              <FiX /> Limpiar rango ({startDate} al {endDate})
+            </button>
+          )}
+        </div>
+      )}
+
       <div className="cal-grid">
         {DIAS_SEMANA.map(d => (
           <div key={d} className="cal-day-name">{d}</div>
@@ -93,18 +193,23 @@ export default function CustomCalendar({
           if (day === null) return <div key={`e-${idx}`} />;
           const avail = isAvailable(day);
           const sel = isSelected(day);
+          const inRange = isInRange(day);
           const tod = isToday(day);
+          const hasTurnos = fechasConTurnos?.has(toISO(day));
+
           return (
             <button
               key={day}
               type="button"
               disabled={!avail}
-              onClick={() => avail && onChange(toISO(day))}
+              onClick={() => avail && handleDayClick(day)}
               className={[
                 'cal-day',
                 avail ? 'cal-day--available' : 'cal-day--disabled',
                 sel ? 'cal-day--selected' : '',
+                inRange ? 'cal-day--in-range' : '',
                 tod && !sel ? 'cal-day--today' : '',
+                hasTurnos ? 'cal-day--has-turnos' : '',
               ].join(' ')}
             >
               {day}
@@ -116,6 +221,7 @@ export default function CustomCalendar({
       <div className="cal-legend">
         <span className="cal-legend-item"><span className="cal-dot cal-dot--available" /> Disponible</span>
         <span className="cal-legend-item"><span className="cal-dot cal-dot--selected" /> Seleccionado</span>
+        {onChangeRange && <span className="cal-legend-item"><span className="cal-dot cal-dot--range" /> Rango</span>}
       </div>
     </div>
   );

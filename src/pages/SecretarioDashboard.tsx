@@ -12,14 +12,8 @@ export default function SecretarioDashboard() {
   const [doctores, setDoctores] = useState<Doctor[]>([]);
   const [selectedDoctor, setSelectedDoctor] = useState('');
   const todayStr = new Date().toISOString().split('T')[0];
-  const [filterMode, setFilterMode] = useState<'DIA' | 'LAPSO'>('DIA');
-  const [fecha, setFecha] = useState(todayStr);
-  const [fechaDesde, setFechaDesde] = useState(todayStr);
-  const [fechaHasta, setFechaHasta] = useState(() => {
-    const d = new Date();
-    d.setDate(d.getDate() + 7);
-    return d.toISOString().split('T')[0];
-  });
+  const [startDate, setStartDate] = useState(todayStr);
+  const [endDate, setEndDate] = useState(todayStr);
   const [loading, setLoading] = useState(true);
 
   // Modales
@@ -40,7 +34,7 @@ export default function SecretarioDashboard() {
 
   useEffect(() => {
     fetchTurnos();
-  }, [selectedDoctor, fecha, filterMode, fechaDesde, fechaHasta]);
+  }, [selectedDoctor, startDate, endDate]);
 
   const fetchDoctores = async () => {
     try {
@@ -62,14 +56,10 @@ export default function SecretarioDashboard() {
         filtered = filtered.filter((t: any) => String(t.doctorId) === String(selectedDoctor));
       }
 
-      if (filterMode === 'DIA') {
-        filtered = filtered.filter((t: any) => t.fechaHoraPlanificado?.startsWith(fecha));
-      } else {
-        filtered = filtered.filter((t: any) => {
-          const f = t.fechaHoraPlanificado?.substring(0, 10);
-          return f >= fechaDesde && f <= fechaHasta;
-        });
-      }
+      filtered = filtered.filter((t: any) => {
+        const f = t.fechaHoraPlanificado?.substring(0, 10);
+        return f >= startDate && f <= endDate;
+      });
 
       const enriched = filtered.map((t: any) => {
         const pac = allPacientes.find((p: any) => p.id === t.pacienteId);
@@ -177,79 +167,39 @@ export default function SecretarioDashboard() {
         </div>
       </div>
 
-      {/* Filtros */}
+      {/* Filtros Unificados con Calendario */}
       <div className="card" style={{ marginBottom: '24px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
-          <div className="input-group" style={{ flex: 1, minWidth: '220px', marginBottom: 0 }}>
-            <label htmlFor="filter-doctor">Filtrar por Médico</label>
-            <select
-              id="filter-doctor"
-              className="input-field"
-              value={selectedDoctor}
-              onChange={(e) => setSelectedDoctor(e.target.value)}
-            >
-              <option value="">Todos los médicos</option>
-              {doctores.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.nombreEmpleado}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button
-              className={`btn btn-sm ${filterMode === 'DIA' ? 'btn-primary' : 'btn-secondary'}`}
-              onClick={() => setFilterMode('DIA')}
-            >
-              <FiCalendar /> Día Específico
-            </button>
-            <button
-              className={`btn btn-sm ${filterMode === 'LAPSO' ? 'btn-primary' : 'btn-secondary'}`}
-              onClick={() => setFilterMode('LAPSO')}
-            >
-              <FiFilter /> Lapso de Días
-            </button>
-          </div>
+        <div className="input-group" style={{ maxWidth: '420px', marginBottom: '16px' }}>
+          <label htmlFor="filter-doctor">Filtrar por Médico</label>
+          <select
+            id="filter-doctor"
+            className="input-field"
+            value={selectedDoctor}
+            onChange={(e) => setSelectedDoctor(e.target.value)}
+          >
+            <option value="">Todos los médicos del consultorio</option>
+            {doctores.map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.nombreEmpleado}
+              </option>
+            ))}
+          </select>
         </div>
 
-        {filterMode === 'DIA' ? (
-          <div style={{ maxWidth: '400px' }}>
-            <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '4px', display: 'block' }}>
-              Seleccioná una fecha del calendario:
-            </label>
-            <CustomCalendar
-              diasDisponibles={diasDisponibles}
-              fechasConTurnos={fechasConTurnos}
-              allowPastDays={true}
-              selectedDate={fecha}
-              onChange={setFecha}
-            />
-          </div>
-        ) : (
-          <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-            <div className="input-group" style={{ width: '180px' }}>
-              <label htmlFor="sec-fd">Fecha Desde</label>
-              <input
-                id="sec-fd"
-                type="date"
-                className="input-field"
-                value={fechaDesde}
-                onChange={(e) => setFechaDesde(e.target.value)}
-              />
-            </div>
-            <div className="input-group" style={{ width: '180px' }}>
-              <label htmlFor="sec-fh">Fecha Hasta</label>
-              <input
-                id="sec-fh"
-                type="date"
-                className="input-field"
-                value={fechaHasta}
-                onChange={(e) => setFechaHasta(e.target.value)}
-              />
-            </div>
-          </div>
-        )}
+        <div style={{ maxWidth: '420px' }}>
+          <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '6px', display: 'block' }}>
+            Seleccioná una fecha en el calendario (o usá "Seleccionar Hasta" para ver un lapso):
+          </label>
+          <CustomCalendar
+            diasDisponibles={diasDisponibles}
+            fechasConTurnos={fechasConTurnos}
+            allowPastDays={true}
+            startDate={startDate}
+            endDate={endDate}
+            onChange={(d) => { setStartDate(d); setEndDate(d); }}
+            onChangeRange={(s, e) => { setStartDate(s); setEndDate(e); }}
+          />
+        </div>
       </div>
 
       <div className="card">

@@ -35,14 +35,8 @@ export default function DoctorDashboard() {
 
   // Filtros de fecha
   const todayStr = new Date().toISOString().split('T')[0];
-  const [filterMode, setFilterMode] = useState<'DIA' | 'LAPSO'>('DIA');
-  const [selectedDate, setSelectedDate] = useState(todayStr);
-  const [fechaDesde, setFechaDesde] = useState(todayStr);
-  const [fechaHasta, setFechaHasta] = useState(() => {
-    const d = new Date();
-    d.setDate(d.getDate() + 7);
-    return d.toISOString().split('T')[0];
-  });
+  const [startDate, setStartDate] = useState(todayStr);
+  const [endDate, setEndDate] = useState(todayStr);
 
   useEffect(() => {
     fetchConsultas();
@@ -90,15 +84,11 @@ export default function DoctorDashboard() {
 
   // Turnos filtrados según fecha o lapso
   const turnosFiltrados = useMemo(() => {
-    if (filterMode === 'DIA') {
-      return turnosDia.filter((t: any) => t.fechaHoraPlanificado?.startsWith(selectedDate));
-    } else {
-      return turnosDia.filter((t: any) => {
-        const f = t.fechaHoraPlanificado?.substring(0, 10);
-        return f >= fechaDesde && f <= fechaHasta;
-      });
-    }
-  }, [turnosDia, filterMode, selectedDate, fechaDesde, fechaHasta]);
+    return turnosDia.filter((t: any) => {
+      const f = t.fechaHoraPlanificado?.substring(0, 10);
+      return f >= startDate && f <= endDate;
+    });
+  }, [turnosDia, startDate, endDate]);
 
   const fetchSalas = async () => {
     try {
@@ -217,71 +207,32 @@ export default function DoctorDashboard() {
         </button>
       </div>
 
-      {/* Sección Turnos del Médico con Calendario y Filtro por Lapso */}
+      {/* Sección Turnos del Médico con Calendario Unificado */}
       <div className="card" style={{ marginBottom: '24px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
-          <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <FiClock style={{ color: 'var(--primary-color)' }} /> Agenda y Turnos del Médico
-          </h3>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button
-              className={`btn btn-sm ${filterMode === 'DIA' ? 'btn-primary' : 'btn-secondary'}`}
-              onClick={() => setFilterMode('DIA')}
-            >
-              <FiCalendar /> Día Específico
-            </button>
-            <button
-              className={`btn btn-sm ${filterMode === 'LAPSO' ? 'btn-primary' : 'btn-secondary'}`}
-              onClick={() => setFilterMode('LAPSO')}
-            >
-              <FiFilter /> Lapso de Días
-            </button>
-          </div>
-        </div>
+        <h3 style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <FiClock style={{ color: 'var(--primary-color)' }} /> Agenda y Turnos del Médico
+        </h3>
 
-        {filterMode === 'DIA' ? (
-          <div style={{ marginBottom: '20px', maxWidth: '400px' }}>
-            <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '4px', display: 'block' }}>
-              Seleccioná un día del calendario para ver tus pacientes:
-            </label>
-            <CustomCalendar
-              diasDisponibles={diasDisponibles}
-              fechasConTurnos={fechasConTurnos}
-              allowPastDays={true}
-              selectedDate={selectedDate}
-              onChange={setSelectedDate}
-            />
-          </div>
-        ) : (
-          <div style={{ display: 'flex', gap: '16px', marginBottom: '20px', flexWrap: 'wrap' }}>
-            <div className="input-group" style={{ width: '180px' }}>
-              <label htmlFor="doc-fd">Fecha Desde</label>
-              <input
-                id="doc-fd"
-                type="date"
-                className="input-field"
-                value={fechaDesde}
-                onChange={(e) => setFechaDesde(e.target.value)}
-              />
-            </div>
-            <div className="input-group" style={{ width: '180px' }}>
-              <label htmlFor="doc-fh">Fecha Hasta</label>
-              <input
-                id="doc-fh"
-                type="date"
-                className="input-field"
-                value={fechaHasta}
-                onChange={(e) => setFechaHasta(e.target.value)}
-              />
-            </div>
-          </div>
-        )}
+        <div style={{ marginBottom: '20px', maxWidth: '420px' }}>
+          <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '6px', display: 'block' }}>
+            Seleccioná un día del calendario para ver tus pacientes (o usá "Seleccionar Hasta" para ver un lapso):
+          </label>
+          <CustomCalendar
+            diasDisponibles={diasDisponibles}
+            fechasConTurnos={fechasConTurnos}
+            allowPastDays={true}
+            startDate={startDate}
+            endDate={endDate}
+            onChange={(d) => { setStartDate(d); setEndDate(d); }}
+            onChangeRange={(s, e) => { setStartDate(s); setEndDate(e); }}
+          />
+        </div>
 
         {turnosFiltrados.length === 0 ? (
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-            {filterMode === 'DIA'
-              ? `No tenés turnos registrados para el día ${selectedDate}.`
-              : `No tenés turnos registrados entre ${fechaDesde} y ${fechaHasta}.`}
+            {startDate === endDate
+              ? `No tenés turnos registrados para el día ${startDate}.`
+              : `No tenés turnos registrados entre ${startDate} y ${endDate}.`}
           </p>
         ) : (
           <div className="table-container">
