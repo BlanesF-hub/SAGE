@@ -12,6 +12,7 @@ import SecretarioDashboard from './pages/SecretarioDashboard';
 import DoctorDashboard from './pages/DoctorDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import ConsultorioAdminDashboard from './pages/ConsultorioAdminDashboard';
+import WhatsAppInbox from './pages/WhatsAppInbox';
 
 function ProtectedRoute({ children, roles }: { children: JSX.Element; roles?: string[] }) {
   const { user, isAuthenticated } = useAuth();
@@ -74,6 +75,10 @@ export default function App() {
 
         <Route path="/consultorio-admin" element={
           <ProtectedRoute roles={['ADMIN_CONSULTORIO']}><ConsultorioAdminDashboard /></ProtectedRoute>
+        } />
+
+        <Route path="/whatsapp" element={
+          <ProtectedRoute roles={['DOCTOR', 'SECRETARIO', 'ADMIN_CONSULTORIO']}><WhatsAppInbox /></ProtectedRoute>
         } />
       </Route>
 

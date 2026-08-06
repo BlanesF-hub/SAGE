@@ -12,6 +12,7 @@ import {
   FiClipboard,
   FiHome,
   FiUser,
+  FiMessageSquare,
 } from 'react-icons/fi';
 import './Layout.css';
 
@@ -21,16 +22,19 @@ const NAV_ITEMS: Record<string, { label: string; icon: JSX.Element; path: string
   ],
   SECRETARIO: [
     { label: 'Agenda', icon: <FiCalendar />, path: '/secretario' },
+    { label: 'WhatsApp', icon: <FiMessageSquare />, path: '/whatsapp' },
   ],
   DOCTOR: [
     { label: 'Panel principal', icon: <FiActivity />, path: '/doctor' },
     { label: 'Agenda', icon: <FiCalendar />, path: '/doctor/agenda' },
+    { label: 'WhatsApp', icon: <FiMessageSquare />, path: '/whatsapp' },
   ],
   ADMIN_GENERAL: [
     { label: 'Dashboard', icon: <FiHome />, path: '/admin' },
   ],
   ADMIN_CONSULTORIO: [
     { label: 'Personal', icon: <FiUsers />, path: '/consultorio-admin' },
+    { label: 'WhatsApp', icon: <FiMessageSquare />, path: '/whatsapp' },
   ],
 };
 
