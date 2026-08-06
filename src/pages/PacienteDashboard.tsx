@@ -148,6 +148,67 @@ export default function PacienteDashboard() {
     return slots;
   }, [selectedDoctorId, selectedFecha, allDoctores, user]);
 
+  const checkDoctorAgeRestriction = (docId: string): boolean => {
+    if (!docId) return true;
+    const doctor = allDoctores.find((d: any) => String(d.id) === String(docId));
+    if (!doctor) return true;
+
+    let edadPaciente: number | undefined = (user as any)?.edad;
+    if (edadPaciente === undefined && (user as any)?.fechaNacimiento) {
+      edadPaciente = new Date().getFullYear() - new Date((user as any).fechaNacimiento).getFullYear();
+    }
+    if (edadPaciente === undefined) {
+      const storedPacientes = getLocal<any>('mock_pacientes');
+      const p = storedPacientes.find((item: any) => String(item.id) === String(user?.id) || item.usuario === user?.usuario);
+      if (p) {
+        if (p.edad !== undefined && p.edad !== null && p.edad !== '') edadPaciente = Number(p.edad);
+        else if (p.fechaNacimiento) edadPaciente = new Date().getFullYear() - new Date(p.fechaNacimiento).getFullYear();
+      }
+    }
+
+    const docConfig = doctor?.configuracion || {};
+    const edadMin = doctor?.edadMinima !== undefined && doctor?.edadMinima !== null && doctor?.edadMinima !== '' ? doctor.edadMinima : docConfig.edadMinima;
+    const edadMax = doctor?.edadMaxima !== undefined && doctor?.edadMaxima !== null && doctor?.edadMaxima !== '' ? doctor.edadMaxima : docConfig.edadMaxima;
+
+    let docNombre = doctor?.nombreEmpleado || doctor?.nombre || '';
+    if (docNombre && !docNombre.startsWith('Dr.') && !docNombre.startsWith('Dra.')) {
+      docNombre = `Dr./Dra. ${docNombre}`;
+    }
+    const articulo = docNombre.startsWith('Dra.') ? 'La' : docNombre.startsWith('Dr.') ? 'El' : 'El/La profesional';
+
+    if (edadMin !== undefined && edadMin !== null && edadMin !== '' && edadPaciente !== undefined && edadPaciente < Number(edadMin)) {
+      toast.error(`${articulo} ${docNombre || 'médico/a'} sólo atiende a pacientes a partir de los ${edadMin} años (su edad registrada es de ${edadPaciente} años).`);
+      return false;
+    }
+
+    if (edadMax !== undefined && edadMax !== null && edadMax !== '' && edadPaciente !== undefined && edadPaciente > Number(edadMax)) {
+      toast.error(`${articulo} ${docNombre || 'médico/a'} sólo atiende a pacientes de hasta ${edadMax} años (su edad registrada es de ${edadPaciente} años).`);
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleDoctorChange = (docId: string) => {
+    if (!docId) {
+      setSelectedDoctorId('');
+      setSelectedFecha('');
+      setSelectedHora('');
+      return;
+    }
+
+    if (!checkDoctorAgeRestriction(docId)) {
+      setSelectedDoctorId('');
+      setSelectedFecha('');
+      setSelectedHora('');
+      return;
+    }
+
+    setSelectedDoctorId(docId);
+    setSelectedFecha('');
+    setSelectedHora('');
+  };
+
   const resetForm = () => {
     setSelectedConsultorioId('');
     setSelectedEspecialidad('');
@@ -451,11 +512,7 @@ export default function PacienteDashboard() {
                     id="st-doctor"
                     className="input-field"
                     value={selectedDoctorId}
-                    onChange={(e) => {
-                      setSelectedDoctorId(e.target.value);
-                      setSelectedFecha('');
-                      setSelectedHora('');
-                    }}
+                    onChange={(e) => handleDoctorChange(e.target.value)}
                     required
                   >
                     <option value="">Seleccioná un médico</option>
