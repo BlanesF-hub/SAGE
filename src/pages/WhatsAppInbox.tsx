@@ -215,18 +215,36 @@ export default function WhatsAppInbox() {
       c.telefono.includes(searchTerm)
   );
 
+  const [chatbaseModalOpen, setChatbaseModalOpen] = useState(false);
+  const [chatbaseBotId, setChatbaseBotId] = useState(() => localStorage.getItem('sage_chatbase_id') || '');
+  const [showChatbaseIframe, setShowChatbaseIframe] = useState(false);
+
+  const saveChatbaseConfig = () => {
+    localStorage.setItem('sage_chatbase_id', chatbaseBotId.trim());
+    toast.success('Configuración de Chatbase guardada');
+    setChatbaseModalOpen(false);
+  };
+
   return (
     <div className="page-container animate-fade-in">
       <div className="page-header" style={{ marginBottom: '16px' }}>
         <div>
           <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ color: '#10b981' }}>💬</span> WhatsApp Inbox & Bot
+            <span style={{ color: '#10b981' }}>💬</span> WhatsApp Inbox & Chatbase IA
           </h1>
           <p className="page-subtitle">
-            Canal de comunicación para pacientes adultos. Asistente automatizado y chat en directo.
+            Canal de comunicación para pacientes adultos. Asistente Chatbase.co y chat en directo.
           </p>
         </div>
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={() => setChatbaseModalOpen(true)}
+            style={{ borderColor: 'rgba(99, 102, 241, 0.4)', color: '#a5b4fc' }}
+          >
+            <FiCpu /> {chatbaseBotId ? 'Chatbase Conectado' : 'Conectar Chatbase.co'}
+          </button>
           <button
             type="button"
             className="btn btn-secondary btn-sm"
@@ -378,6 +396,71 @@ export default function WhatsAppInbox() {
           </div>
         )}
       </div>
+
+      {/* Modal Conectar Chatbase */}
+      {chatbaseModalOpen && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: '520px' }}>
+            <div className="modal-header">
+              <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <FiCpu style={{ color: '#818cf8' }} /> Integración Chatbase.co IA
+              </h3>
+              <button className="modal-close" onClick={() => setChatbaseModalOpen(false)}>×</button>
+            </div>
+            <div className="modal-body">
+              <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', marginBottom: '16px', lineHeight: 1.5 }}>
+                Vincular el bot de <strong>Chatbase.co</strong> permite entrenar una Inteligencia Artificial con las reglas de tu clínica (horarios, médicos, especialidades) para responder en WhatsApp a pacientes de forma natural y automática.
+              </p>
+
+              <div className="input-group">
+                <label htmlFor="cb-id">Chatbase Chatbot ID</label>
+                <input
+                  id="cb-id"
+                  type="text"
+                  className="input-field"
+                  placeholder="Ej: v9AbXc12345"
+                  value={chatbaseBotId}
+                  onChange={(e) => setChatbaseBotId(e.target.value)}
+                />
+                <small style={{ color: '#94a3b8', fontSize: '0.78rem', marginTop: '4px', display: 'block' }}>
+                  Encontrás este ID en el panel de tu chatbot en <strong>Chatbase.co &gt; Settings &gt; Chatbot ID</strong>.
+                </small>
+              </div>
+
+              {chatbaseBotId && (
+                <div style={{ marginTop: '16px', background: 'rgba(99, 102, 241, 0.1)', padding: '12px', borderRadius: '12px', border: '1px solid rgba(99, 102, 241, 0.25)' }}>
+                  <p style={{ fontSize: '0.82rem', color: '#a5b4fc', marginBottom: '8px', fontWeight: 600 }}>
+                    💡 Vista Previa / Prueba del Bot de Chatbase:
+                  </p>
+                  <button
+                    type="button"
+                    className="btn btn-xs btn-secondary"
+                    onClick={() => setShowChatbaseIframe(!showChatbaseIframe)}
+                  >
+                    {showChatbaseIframe ? 'Ocultar Chat' : 'Abrir Vista Previa de Chatbase'}
+                  </button>
+
+                  {showChatbaseIframe && (
+                    <div style={{ marginTop: '12px', height: '350px', borderRadius: '8px', overflow: 'hidden' }}>
+                      <iframe
+                        src={`https://www.chatbase.co/chatbot-iframe/${chatbaseBotId}`}
+                        width="100%"
+                        height="100%"
+                        style={{ border: 'none' }}
+                        title="Chatbase Bot Preview"
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={() => setChatbaseModalOpen(false)}>Cancelar</button>
+              <button className="btn btn-primary" onClick={saveChatbaseConfig}>Guardar Configuración</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
