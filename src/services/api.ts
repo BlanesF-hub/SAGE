@@ -193,6 +193,7 @@ export const doctorApi = {
         doctores[idx].configuracion = data;
         doctores[idx].edadMinima = data.edadMinima;
         doctores[idx].edadMaxima = data.edadMaxima;
+        if (data.sexo) doctores[idx].sexo = data.sexo;
         setLocal('mock_doctores', doctores);
         return 'OK';
       }
@@ -215,8 +216,8 @@ const SEED_DATA: Record<string, any[]> = {
     { id: 2, codLocalidad: 'L2', nombreLocalidad: 'Godoy Cruz', zona: { id: 2, codZona: 'Z2', nombreZona: 'Gran Mendoza' } },
   ],
   mock_consultorios: [
-    { id: 1, codConsultorio: 'C001', nombreConsultorio: 'Clínica San Gabriel', direccionConsultorio: 'Av. San Martín 1050', localidad: { id: 1, codLocalidad: 'L1', nombreLocalidad: 'Capital' } },
-    { id: 2, codConsultorio: 'C002', nombreConsultorio: 'Centro Médico Salud & Vida', direccionConsultorio: 'Calle Belgrano 450', localidad: { id: 2, codLocalidad: 'L2', nombreLocalidad: 'Godoy Cruz' } },
+    { id: 1, codConsultorio: 'CONS-001', nombreConsultorio: 'Consultorios Médicos San Gabriel', localidad: { id: 1, codLocalidad: 'L1', nombreLocalidad: 'Capital', zona: { id: 1, codZona: 'Z1', nombreZona: 'Mendoza Centro' } } },
+    { id: 2, codConsultorio: 'CONS-002', nombreConsultorio: 'Centro de Salud y Vida', localidad: { id: 2, codLocalidad: 'L2', nombreLocalidad: 'Godoy Cruz', zona: { id: 2, codZona: 'Z2', nombreZona: 'Gran Mendoza' } } },
   ],
   mock_especialidades: [
     { id: 1, codEspecialidad: 'CARDIO', nombreEspecialidad: 'Cardiología' },
@@ -243,9 +244,11 @@ const SEED_DATA: Record<string, any[]> = {
       consultorioId: 1,
       esProvisoria: false,
       edadMinima: 18,
+      sexo: 'FEMENINO',
       configuracion: {
         codEspecialidad: 'CLINICA',
         edadMinima: 18,
+        sexo: 'FEMENINO',
         agenda: [
           { diaSemana: 1, horaInicio: '08:00', horaFin: '13:00', tiempoMaximoEspera: 15, salaId: 1 },
           { diaSemana: 2, horaInicio: '08:00', horaFin: '13:00', tiempoMaximoEspera: 15, salaId: 1 },
@@ -263,8 +266,10 @@ const SEED_DATA: Record<string, any[]> = {
       codDoctor: 'MAT-1001',
       consultorioId: 1,
       esProvisoria: false,
+      sexo: 'MASCULINO',
       configuracion: {
         codEspecialidad: 'CARDIO',
+        sexo: 'MASCULINO',
         agenda: [
           { diaSemana: 1, horaInicio: '08:00', horaFin: '12:00', tiempoMaximoEspera: 15, salaId: 2 },
           { diaSemana: 3, horaInicio: '08:00', horaFin: '12:00', tiempoMaximoEspera: 15, salaId: 2 },
@@ -279,8 +284,10 @@ const SEED_DATA: Record<string, any[]> = {
       codDoctor: 'MAT-1002',
       consultorioId: 1,
       esProvisoria: false,
+      sexo: 'FEMENINO',
       configuracion: {
         codEspecialidad: 'PEDIATRIA',
+        sexo: 'FEMENINO',
         agenda: [
           { diaSemana: 2, horaInicio: '09:00', horaFin: '13:00', tiempoMaximoEspera: 15, salaId: 1 },
           { diaSemana: 4, horaInicio: '09:00', horaFin: '13:00', tiempoMaximoEspera: 15, salaId: 1 },
@@ -396,7 +403,7 @@ export const consultorioAdminApi = {
     const cId = JSON.parse(localStorage.getItem('sage_user') || '{}').consultorioId;
     return saveMock('mock_secretarios', { ...data, consultorioId: cId, esProvisoria: true });
   },
-  crearDoctor: async (data: { usuario: string; contrasena: string; nombreEmpleado: string; nroTelefono?: string; codDoctor: string }) => {
+  crearDoctor: async (data: { usuario: string; contrasena: string; nombreEmpleado: string; nroTelefono?: string; codDoctor: string; sexo?: 'FEMENINO' | 'MASCULINO' | 'PREFIERO_NO_DECIRLO' }) => {
     const cId = JSON.parse(localStorage.getItem('sage_user') || '{}').consultorioId;
     return saveMock('mock_doctores', { ...data, consultorioId: cId, esProvisoria: true });
   },

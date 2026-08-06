@@ -148,6 +148,29 @@ export default function PacienteDashboard() {
     return slots;
   }, [selectedDoctorId, selectedFecha, allDoctores, user]);
 
+  const getDoctorFormalTitle = (doctor: any) => {
+    const sexo = doctor?.sexo || doctor?.configuracion?.sexo;
+    let name = doctor?.nombreEmpleado || doctor?.nombre || '';
+    name = name.replace(/^(Dr\.|Dra\.|Doctora|Doctor)\s+/i, '').trim();
+
+    if (sexo === 'FEMENINO') {
+      return { articulo: 'La', display: name ? `Dra. ${name}` : 'Dra.' };
+    }
+    if (sexo === 'MASCULINO') {
+      return { articulo: 'El', display: name ? `Dr. ${name}` : 'Dr.' };
+    }
+    if (sexo === 'PREFIERO_NO_DECIRLO') {
+      return { articulo: 'El/La profesional', display: name ? `Dr./Dra. ${name}` : 'profesional médico/a' };
+    }
+
+    // Fallback por defecto si no hay sexo configurado explícitamente
+    const orig = doctor?.nombreEmpleado || doctor?.nombre || '';
+    if (orig.startsWith('Dra.')) return { articulo: 'La', display: orig };
+    if (orig.startsWith('Dr.')) return { articulo: 'El', display: orig };
+
+    return { articulo: 'El/La profesional', display: name ? `Dr./Dra. ${name}` : 'profesional médico/a' };
+  };
+
   const checkDoctorAgeRestriction = (docId: string): boolean => {
     if (!docId) return true;
     const doctor = allDoctores.find((d: any) => String(d.id) === String(docId));
@@ -170,19 +193,15 @@ export default function PacienteDashboard() {
     const edadMin = doctor?.edadMinima !== undefined && doctor?.edadMinima !== null && doctor?.edadMinima !== '' ? doctor.edadMinima : docConfig.edadMinima;
     const edadMax = doctor?.edadMaxima !== undefined && doctor?.edadMaxima !== null && doctor?.edadMaxima !== '' ? doctor.edadMaxima : docConfig.edadMaxima;
 
-    let docNombre = doctor?.nombreEmpleado || doctor?.nombre || '';
-    if (docNombre && !docNombre.startsWith('Dr.') && !docNombre.startsWith('Dra.')) {
-      docNombre = `Dr./Dra. ${docNombre}`;
-    }
-    const articulo = docNombre.startsWith('Dra.') ? 'La' : docNombre.startsWith('Dr.') ? 'El' : 'El/La profesional';
+    const { articulo, display } = getDoctorFormalTitle(doctor);
 
     if (edadMin !== undefined && edadMin !== null && edadMin !== '' && edadPaciente !== undefined && edadPaciente < Number(edadMin)) {
-      toast.error(`${articulo} ${docNombre || 'médico/a'} sólo atiende a pacientes a partir de los ${edadMin} años (su edad registrada es de ${edadPaciente} años).`);
+      toast.error(`${articulo} ${display} sólo atiende a pacientes a partir de los ${edadMin} años (su edad registrada es de ${edadPaciente} años).`);
       return false;
     }
 
     if (edadMax !== undefined && edadMax !== null && edadMax !== '' && edadPaciente !== undefined && edadPaciente > Number(edadMax)) {
-      toast.error(`${articulo} ${docNombre || 'médico/a'} sólo atiende a pacientes de hasta ${edadMax} años (su edad registrada es de ${edadPaciente} años).`);
+      toast.error(`${articulo} ${display} sólo atiende a pacientes de hasta ${edadMax} años (su edad registrada es de ${edadPaciente} años).`);
       return false;
     }
 
@@ -245,20 +264,16 @@ export default function PacienteDashboard() {
       const edadMin = doctor?.edadMinima !== undefined && doctor?.edadMinima !== null && doctor?.edadMinima !== '' ? doctor.edadMinima : docConfig.edadMinima;
       const edadMax = doctor?.edadMaxima !== undefined && doctor?.edadMaxima !== null && doctor?.edadMaxima !== '' ? doctor.edadMaxima : docConfig.edadMaxima;
 
-      let docNombre = doctor?.nombreEmpleado || doctor?.nombre || '';
-      if (docNombre && !docNombre.startsWith('Dr.') && !docNombre.startsWith('Dra.')) {
-        docNombre = `Dr./Dra. ${docNombre}`;
-      }
-      const articulo = docNombre.startsWith('Dra.') ? 'La' : docNombre.startsWith('Dr.') ? 'El' : 'El/La profesional';
+      const { articulo, display } = getDoctorFormalTitle(doctor);
 
       if (edadMin !== undefined && edadMin !== null && edadMin !== '' && edadPaciente !== undefined && edadPaciente < Number(edadMin)) {
-        toast.error(`${articulo} ${docNombre || 'médico/a'} sólo atiende a pacientes a partir de los ${edadMin} años (su edad registrada es de ${edadPaciente} años).`);
+        toast.error(`${articulo} ${display} sólo atiende a pacientes a partir de los ${edadMin} años (su edad registrada es de ${edadPaciente} años).`);
         setSubmitting(false);
         return;
       }
 
       if (edadMax !== undefined && edadMax !== null && edadMax !== '' && edadPaciente !== undefined && edadPaciente > Number(edadMax)) {
-        toast.error(`${articulo} ${docNombre || 'médico/a'} sólo atiende a pacientes de hasta ${edadMax} años (su edad registrada es de ${edadPaciente} años).`);
+        toast.error(`${articulo} ${display} sólo atiende a pacientes de hasta ${edadMax} años (su edad registrada es de ${edadPaciente} años).`);
         setSubmitting(false);
         return;
       }

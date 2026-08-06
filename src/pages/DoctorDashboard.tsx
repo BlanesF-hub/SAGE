@@ -28,6 +28,7 @@ export default function DoctorDashboard({ view = 'principal' }: DoctorDashboardP
   const [selectedEspecialidad, setSelectedEspecialidad] = useState('');
   const [edadMinima, setEdadMinima] = useState('');
   const [edadMaxima, setEdadMaxima] = useState(''); // Empty string = sin máximo
+  const [sexoDoc, setSexoDoc] = useState<'FEMENINO' | 'MASCULINO' | 'PREFIERO_NO_DECIRLO'>('FEMENINO');
   const [agendaRows, setAgendaRows] = useState<{ diaSemana: number; horaInicio: string; horaFin: string; tiempoMaximoEspera: number; salaId?: number }[]>([]);
 
   // Action states
@@ -146,7 +147,8 @@ export default function DoctorDashboard({ view = 'principal' }: DoctorDashboardP
         codEspecialidad: selectedEspecialidad,
         edadMinima: edadMinima ? Number(edadMinima) : undefined,
         edadMaxima: edadMaxima ? Number(edadMaxima) : undefined,
-        agenda: agendaRows, // Sending the same read-only rows back
+        sexo: sexoDoc,
+        agenda: agendaRows,
       });
       toast.success('Cuenta de médico configurada con éxito.');
       setConfigOpen(false);
@@ -218,9 +220,11 @@ export default function DoctorDashboard({ view = 'principal' }: DoctorDashboardP
         <button id="btn-config-doc" className="btn btn-secondary" onClick={() => {
            const currentUser = JSON.parse(localStorage.getItem('sage_user') || '{}');
            const doctores = JSON.parse(localStorage.getItem('mock_doctores') || '[]');
-           const me = doctores.find((d: any) => d.id === currentUser.id);
-           if (me && me.configuracion?.agenda) {
-              setAgendaRows(me.configuracion.agenda);
+           const me = doctores.find((d: any) => d.id === currentUser.id || d.usuario === currentUser.usuario);
+           if (me) {
+              if (me.sexo) setSexoDoc(me.sexo);
+              if (me.configuracion?.sexo) setSexoDoc(me.configuracion.sexo);
+              if (me.configuracion?.agenda) setAgendaRows(me.configuracion.agenda);
            }
            setConfigOpen(true);
         }}>
@@ -538,6 +542,20 @@ export default function DoctorDashboard({ view = 'principal' }: DoctorDashboardP
                       {esp.nombreEspecialidad}
                     </option>
                   ))}
+                </select>
+              </div>
+
+              <div className="input-group">
+                <label htmlFor="config-sexo">Sexo / Título Formal</label>
+                <select
+                  id="config-sexo"
+                  className="input-field"
+                  value={sexoDoc}
+                  onChange={(e) => setSexoDoc(e.target.value as 'FEMENINO' | 'MASCULINO' | 'PREFIERO_NO_DECIRLO')}
+                >
+                  <option value="FEMENINO">Femenino (Dra.)</option>
+                  <option value="MASCULINO">Masculino (Dr.)</option>
+                  <option value="PREFIERO_NO_DECIRLO">Prefiero no decirlo (Genérico: El/La profesional)</option>
                 </select>
               </div>
 

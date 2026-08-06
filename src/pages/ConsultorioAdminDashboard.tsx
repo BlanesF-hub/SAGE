@@ -38,6 +38,7 @@ export default function ConsultorioAdminDashboard() {
   const [nombreEmpleado, setNombreEmpleado] = useState('');
   const [nroTelefono, setNroTelefono] = useState('');
   const [codPersonal, setCodPersonal] = useState(''); 
+  const [sexo, setSexo] = useState<'FEMENINO' | 'MASCULINO' | 'PREFIERO_NO_DECIRLO'>('FEMENINO');
 
   // Form states Salas
   const [codSala, setCodSala] = useState('');
@@ -52,7 +53,7 @@ export default function ConsultorioAdminDashboard() {
     try {
       if (roleType === 'DOCTOR') {
         await consultorioAdminApi.crearDoctor({
-          usuario, contrasena, nombreEmpleado, nroTelefono: nroTelefono || undefined, codDoctor: codPersonal,
+          usuario, contrasena, nombreEmpleado, nroTelefono: nroTelefono || undefined, codDoctor: codPersonal, sexo,
         });
         toast.success('Médico creado exitosamente con contraseña provisional');
       } else {
@@ -280,6 +281,22 @@ export default function ConsultorioAdminDashboard() {
                   <option value="SECRETARIO">Secretario / Administrativo</option>
                 </select>
               </div>
+
+              {roleType === 'DOCTOR' && (
+                <div className="input-group">
+                  <label htmlFor="staff-sexo">Sexo / Título Formal</label>
+                  <select
+                    id="staff-sexo"
+                    className="input-field"
+                    value={sexo}
+                    onChange={(e) => setSexo(e.target.value as 'FEMENINO' | 'MASCULINO' | 'PREFIERO_NO_DECIRLO')}
+                  >
+                    <option value="FEMENINO">Femenino (Dra.)</option>
+                    <option value="MASCULINO">Masculino (Dr.)</option>
+                    <option value="PREFIERO_NO_DECIRLO">Prefiero no decirlo (Genérico: El/La profesional)</option>
+                  </select>
+                </div>
+              )}
 
               <div className="input-group">
                 <label htmlFor="staff-name">Nombre Completo</label>

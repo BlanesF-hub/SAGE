@@ -94,6 +94,7 @@ export interface Empleado {
   fechaDesdeEmpleado: string;
   fechaHastaEmpleado?: string;
   rol: Rol;
+  sexo?: 'FEMENINO' | 'MASCULINO' | 'PREFIERO_NO_DECIRLO';
   forcePasswordChange: boolean;
   consultorio?: Consultorio;
 }
@@ -222,6 +223,7 @@ export interface ConfigurarDoctorRequest {
   codEspecialidad: string;
   edadMinima?: number;
   edadMaxima?: number;
+  sexo?: 'FEMENINO' | 'MASCULINO' | 'PREFIERO_NO_DECIRLO';
   agenda: AgendaInput[];
 }
 
