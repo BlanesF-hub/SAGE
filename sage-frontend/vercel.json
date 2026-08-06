@@ -1,27 +1,6 @@
 {
-  "builds": [
-    {
-      "src": "api/webhooks/whatsapp.js",
-      "use": "@vercel/node"
-    },
-    {
-      "src": "package.json",
-      "use": "@vercel/static-build",
-      "config": { "distDir": "dist" }
-    }
-  ],
-  "routes": [
-    {
-      "src": "/api/webhooks/whatsapp",
-      "dest": "api/webhooks/whatsapp.js"
-    },
-    {
-      "src": "/assets/(.*)",
-      "dest": "/assets/$1"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
-    }
+  "rewrites": [
+    { "source": "/api/webhooks/whatsapp", "destination": "/api/webhooks/whatsapp" },
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }
