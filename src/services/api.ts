@@ -101,6 +101,8 @@ export const authApi = {
           usuario: matchedUser.usuario,
           nombre: matchedUser.nombrePaciente || matchedUser.nombreEmpleado,
           rol: matchedRol,
+          edad: matchedUser.edad,
+          fechaNacimiento: matchedUser.fechaNacimiento,
           token: 'mock-token-' + matchedUser.id,
           forcePasswordChange: isForce,
           consultorioId: matchedUser.consultorioId,
@@ -189,6 +191,8 @@ export const doctorApi = {
       const idx = doctores.findIndex((d) => d.id === currentUser.id);
       if (idx !== -1) {
         doctores[idx].configuracion = data;
+        doctores[idx].edadMinima = data.edadMinima;
+        doctores[idx].edadMaxima = data.edadMaxima;
         setLocal('mock_doctores', doctores);
         return 'OK';
       }
@@ -234,12 +238,14 @@ const SEED_DATA: Record<string, any[]> = {
       id: 3,
       usuario: 'doctor',
       contrasena: 'admin123',
-      nombreEmpleado: 'Dr. Gladys Aruta',
+      nombreEmpleado: 'Dra. Gladys Aruta',
       codDoctor: 'MAT-999',
       consultorioId: 1,
       esProvisoria: false,
+      edadMinima: 18,
       configuracion: {
         codEspecialidad: 'CLINICA',
+        edadMinima: 18,
         agenda: [
           { diaSemana: 1, horaInicio: '08:00', horaFin: '13:00', tiempoMaximoEspera: 15, salaId: 1 },
           { diaSemana: 2, horaInicio: '08:00', horaFin: '13:00', tiempoMaximoEspera: 15, salaId: 1 },
@@ -308,6 +314,15 @@ const getLocal = <T>(key: string): T[] => {
         p.fechaNacimiento = '1976-05-15';
       } else if (!p.edad && p.fechaNacimiento) {
         p.edad = new Date().getFullYear() - new Date(p.fechaNacimiento).getFullYear();
+      }
+    });
+  }
+  if (key === 'mock_doctores') {
+    parsed.forEach((d: any) => {
+      if (d.id === 3 || d.usuario === 'doctor') {
+        if (!d.edadMinima) d.edadMinima = 18;
+        if (!d.configuracion) d.configuracion = {};
+        if (!d.configuracion.edadMinima) d.configuracion.edadMinima = 18;
       }
     });
   }

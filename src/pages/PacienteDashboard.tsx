@@ -167,24 +167,31 @@ export default function PacienteDashboard() {
       const espNombre = resolveEspecialidadNombre(selectedEspecialidad);
 
       // Regla 0: Validación de Edad del Paciente vs Restricciones del Médico
-      let edadPaciente = (user as any)?.edad;
+      let edadPaciente: number | undefined = (user as any)?.edad;
       if (edadPaciente === undefined && (user as any)?.fechaNacimiento) {
         edadPaciente = new Date().getFullYear() - new Date((user as any).fechaNacimiento).getFullYear();
       }
-      if (edadPaciente === undefined) edadPaciente = 50;
+      if (edadPaciente === undefined) {
+        const storedPacientes = getLocal<any>('mock_pacientes');
+        const p = storedPacientes.find((item: any) => String(item.id) === String(user.id) || item.usuario === user.usuario);
+        if (p) {
+          if (p.edad !== undefined && p.edad !== null && p.edad !== '') edadPaciente = Number(p.edad);
+          else if (p.fechaNacimiento) edadPaciente = new Date().getFullYear() - new Date(p.fechaNacimiento).getFullYear();
+        }
+      }
 
       const docConfig = doctor?.configuracion || {};
-      const edadMin = doctor?.edadMinima || docConfig.edadMinima;
-      const edadMax = doctor?.edadMaxima || docConfig.edadMaxima;
+      const edadMin = doctor?.edadMinima !== undefined && doctor?.edadMinima !== null && doctor?.edadMinima !== '' ? doctor.edadMinima : docConfig.edadMinima;
+      const edadMax = doctor?.edadMaxima !== undefined && doctor?.edadMaxima !== null && doctor?.edadMaxima !== '' ? doctor.edadMaxima : docConfig.edadMaxima;
 
-      if (edadMin !== undefined && edadMin !== null && edadMin !== '' && edadPaciente < Number(edadMin)) {
-        toast.error(`El ${doctor?.nombreEmpleado || 'médico'} sólo atiende pacientes a partir de los ${edadMin} años (tu edad registrada es ${edadPaciente} años).`);
+      if (edadMin !== undefined && edadMin !== null && edadMin !== '' && edadPaciente !== undefined && edadPaciente < Number(edadMin)) {
+        toast.error(`La ${doctor?.nombreEmpleado || 'médico'} sólo atiende pacientes a partir de los ${edadMin} años (tu edad registrada es ${edadPaciente} años).`);
         setSubmitting(false);
         return;
       }
 
-      if (edadMax !== undefined && edadMax !== null && edadMax !== '' && edadPaciente > Number(edadMax)) {
-        toast.error(`El ${doctor?.nombreEmpleado || 'médico'} sólo atiende pacientes de hasta ${edadMax} años (tu edad registrada es ${edadPaciente} años).`);
+      if (edadMax !== undefined && edadMax !== null && edadMax !== '' && edadPaciente !== undefined && edadPaciente > Number(edadMax)) {
+        toast.error(`La ${doctor?.nombreEmpleado || 'médico'} sólo atiende pacientes de hasta ${edadMax} años (tu edad registrada es ${edadPaciente} años).`);
         setSubmitting(false);
         return;
       }
