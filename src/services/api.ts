@@ -200,8 +200,87 @@ export const doctorApi = {
     api.get<Doctor[]>(`/api/consultorio/${consultorioId}/doctores`).then((r) => r.data),
 };
 
+// ── Seed Data por defecto para dispositivos/navegadores nuevos ──
+const SEED_DATA: Record<string, any[]> = {
+  mock_zonas: [
+    { id: 1, codZona: 'Z1', nombreZona: 'Mendoza Centro' },
+    { id: 2, codZona: 'Z2', nombreZona: 'Gran Mendoza' },
+  ],
+  mock_localidades: [
+    { id: 1, codLocalidad: 'L1', nombreLocalidad: 'Capital', zona: { id: 1, codZona: 'Z1', nombreZona: 'Mendoza Centro' } },
+    { id: 2, codLocalidad: 'L2', nombreLocalidad: 'Godoy Cruz', zona: { id: 2, codZona: 'Z2', nombreZona: 'Gran Mendoza' } },
+  ],
+  mock_consultorios: [
+    { id: 1, codConsultorio: 'C001', nombreConsultorio: 'Clínica San Gabriel', direccionConsultorio: 'Av. San Martín 1050', localidad: { id: 1, codLocalidad: 'L1', nombreLocalidad: 'Capital' } },
+    { id: 2, codConsultorio: 'C002', nombreConsultorio: 'Centro Médico Salud & Vida', direccionConsultorio: 'Calle Belgrano 450', localidad: { id: 2, codLocalidad: 'L2', nombreLocalidad: 'Godoy Cruz' } },
+  ],
+  mock_especialidades: [
+    { id: 1, codEspecialidad: 'CARDIO', nombreEspecialidad: 'Cardiología' },
+    { id: 2, codEspecialidad: 'PEDIATRIA', nombreEspecialidad: 'Pediatría' },
+    { id: 3, codEspecialidad: 'CLINICA', nombreEspecialidad: 'Clínica General' },
+    { id: 4, codEspecialidad: 'TRAUMA', nombreEspecialidad: 'Traumatología' },
+  ],
+  mock_admins_consultorio: [
+    { id: 10, usuario: 'admin_sangabriel', contrasena: 'admin123', nombreEmpleado: 'Gladys Aruta (Admin San Gabriel)', consultorioId: 1, esProvisoria: false },
+    { id: 11, usuario: 'admin_saludvida', contrasena: 'admin123', nombreEmpleado: 'Carlos López (Admin Salud)', consultorioId: 2, esProvisoria: false },
+  ],
+  mock_salas: [
+    { id: 1, codSala: 'BOX-101', nombreSala: 'Consultorio 101 (Pediatría)', consultorioId: 1 },
+    { id: 2, codSala: 'BOX-102', nombreSala: 'Consultorio 102 (Cardiología)', consultorioId: 1 },
+    { id: 3, codSala: 'BOX-A', nombreSala: 'Sala A (Clínica)', consultorioId: 2 },
+  ],
+  mock_doctores: [
+    {
+      id: 101,
+      usuario: 'dr_perez',
+      contrasena: 'doc123',
+      nombreEmpleado: 'Dr. Juan Pérez',
+      codDoctor: 'MAT-1001',
+      consultorioId: 1,
+      esProvisoria: false,
+      configuracion: {
+        codEspecialidad: 'CARDIO',
+        agenda: [
+          { diaSemana: 1, horaInicio: '08:00', horaFin: '12:00', tiempoMaximoEspera: 15, salaId: 2 },
+          { diaSemana: 3, horaInicio: '08:00', horaFin: '12:00', tiempoMaximoEspera: 15, salaId: 2 },
+        ],
+      },
+    },
+    {
+      id: 102,
+      usuario: 'dra_gomez',
+      contrasena: 'doc123',
+      nombreEmpleado: 'Dra. Ana Gómez',
+      codDoctor: 'MAT-1002',
+      consultorioId: 1,
+      esProvisoria: false,
+      configuracion: {
+        codEspecialidad: 'PEDIATRIA',
+        agenda: [
+          { diaSemana: 2, horaInicio: '09:00', horaFin: '13:00', tiempoMaximoEspera: 15, salaId: 1 },
+          { diaSemana: 4, horaInicio: '09:00', horaFin: '13:00', tiempoMaximoEspera: 15, salaId: 1 },
+        ],
+      },
+    },
+  ],
+  mock_secretarios: [
+    { id: 201, usuario: 'sec_marcela', contrasena: 'sec123', nombreEmpleado: 'Marcela Fernández', codSecretario: 'SEC-501', consultorioId: 1, esProvisoria: false },
+  ],
+  mock_pacientes: [
+    { id: 301, usuario: 'paciente_juan', contrasena: 'pac123', nombrePaciente: 'Juan Pérez', dniPaciente: 35123456, rol: 'PACIENTE', esProvisoria: false },
+  ],
+};
+
 // ── Funciones de ayuda para MOCK de BD Local ──
-const getLocal = <T>(key: string): T[] => JSON.parse(localStorage.getItem(key) || '[]');
+const getLocal = <T>(key: string): T[] => {
+  const raw = localStorage.getItem(key);
+  if (!raw) {
+    const defaultData = SEED_DATA[key] || [];
+    localStorage.setItem(key, JSON.stringify(defaultData));
+    return defaultData as T[];
+  }
+  return JSON.parse(raw);
+};
 const setLocal = (key: string, data: any) => localStorage.setItem(key, JSON.stringify(data));
 const saveMock = (key: string, data: any) => {
   const items = getLocal<any>(key);
