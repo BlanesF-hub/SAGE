@@ -2,8 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { doctorApi, consultaApi, adminApi, consultorioAdminApi } from '../services/api';
 import type { Consulta, Especialidad } from '../types';
-import { FiActivity, FiUser, FiClock, FiAlertTriangle, FiCheck, FiSettings, FiCalendar, FiFilter } from 'react-icons/fi';
-import CustomCalendar from '../components/CustomCalendar';
+import { FiUser, FiClock, FiAlertTriangle, FiCheck, FiSettings, FiCalendar, FiFilter } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 
 export default function DoctorDashboard() {
@@ -35,8 +34,8 @@ export default function DoctorDashboard() {
 
   // Filtros de fecha
   const todayStr = new Date().toISOString().split('T')[0];
-  const [startDate, setStartDate] = useState(todayStr);
-  const [endDate, setEndDate] = useState(todayStr);
+  const [filterFechaDesde, setFilterFechaDesde] = useState('');
+  const [filterFechaHasta, setFilterFechaHasta] = useState('');
 
   useEffect(() => {
     fetchConsultas();
@@ -62,33 +61,21 @@ export default function DoctorDashboard() {
     setTurnosDia(enriched);
   };
 
-  // Días de atención del médico (1=Lun...7=Dom)
-  const diasDisponibles = useMemo(() => {
-    if (!user) return new Set<number>();
-    const doctores = JSON.parse(localStorage.getItem('mock_doctores') || '[]');
-    const me = doctores.find((d: any) => String(d.id) === String(user.id) || d.usuario === user.usuario);
-    const agenda = me?.configuracion?.agenda || [];
-    return new Set<number>(agenda.map((a: any) => Number(a.diaSemana)));
-  }, [user]);
+  // Turnos de HOY
+  const turnosHoy = useMemo(() => {
+    return turnosDia.filter((t: any) => t.fechaHoraPlanificado?.startsWith(todayStr));
+  }, [turnosDia, todayStr]);
 
-  // Fechas que contienen al menos 1 turno reservado
-  const fechasConTurnos = useMemo(() => {
-    const set = new Set<string>();
-    turnosDia.forEach((t: any) => {
-      if (t.fechaHoraPlanificado) {
-        set.add(t.fechaHoraPlanificado.substring(0, 10));
-      }
-    });
-    return set;
-  }, [turnosDia]);
-
-  // Turnos filtrados según fecha o lapso
+  // Turnos filtrados por el rango seleccionado en "Consultar Agenda"
   const turnosFiltrados = useMemo(() => {
+    if (!filterFechaDesde) return [];
+    const desde = filterFechaDesde;
+    const hasta = filterFechaHasta && filterFechaHasta >= filterFechaDesde ? filterFechaHasta : filterFechaDesde;
     return turnosDia.filter((t: any) => {
       const f = t.fechaHoraPlanificado?.substring(0, 10);
-      return f >= startDate && f <= endDate;
+      return f >= desde && f <= hasta;
     });
-  }, [turnosDia, startDate, endDate]);
+  }, [turnosDia, filterFechaDesde, filterFechaHasta]);
 
   const fetchSalas = async () => {
     try {
@@ -207,39 +194,24 @@ export default function DoctorDashboard() {
         </button>
       </div>
 
-      {/* Sección Turnos del Médico con Calendario Unificado */}
+      {/* ═══════ SECCIÓN 1: Turnos del Día (HOY) ═══════ */}
       <div className="card" style={{ marginBottom: '24px' }}>
         <h3 style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <FiClock style={{ color: 'var(--primary-color)' }} /> Agenda y Turnos del Médico
+          <FiClock style={{ color: 'var(--primary-color)' }} /> Turnos del Día — {new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
         </h3>
 
-        <div style={{ marginBottom: '20px', maxWidth: '420px' }}>
-          <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '6px', display: 'block' }}>
-            Seleccioná un día del calendario para ver tus pacientes (o usá "Seleccionar Hasta" para ver un lapso):
-          </label>
-          <CustomCalendar
-            diasDisponibles={diasDisponibles}
-            fechasConTurnos={fechasConTurnos}
-            allowPastDays={true}
-            startDate={startDate}
-            endDate={endDate}
-            onChange={(d) => { setStartDate(d); setEndDate(d); }}
-            onChangeRange={(s, e) => { setStartDate(s); setEndDate(e); }}
-          />
-        </div>
-
-        {turnosFiltrados.length === 0 ? (
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-            {startDate === endDate
-              ? `No tenés turnos registrados para el día ${startDate}.`
-              : `No tenés turnos registrados entre ${startDate} y ${endDate}.`}
-          </p>
+        {turnosHoy.length === 0 ? (
+          <div className="empty-state" style={{ padding: '32px 16px' }}>
+            <FiUser className="empty-state-icon" />
+            <h3 className="empty-state-title">No tenés turnos programados para hoy</h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Usá la sección "Consultar Agenda" para explorar otros días.</p>
+          </div>
         ) : (
           <div className="table-container">
             <table>
               <thead>
                 <tr>
-                  <th>Fecha y Hora</th>
+                  <th>Hora</th>
                   <th>Paciente</th>
                   <th>DNI</th>
                   <th>Teléfono</th>
@@ -248,14 +220,11 @@ export default function DoctorDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {turnosFiltrados.map((t: any) => (
+                {turnosHoy.map((t: any) => (
                   <tr key={t.id}>
                     <td>
                       <strong>
-                        {new Date(t.fechaHoraPlanificado).toLocaleString('es-AR', {
-                          dateStyle: 'short',
-                          timeStyle: 'short',
-                        })}
+                        {new Date(t.fechaHoraPlanificado).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
                       </strong>
                     </td>
                     <td>{t.pacienteNombre}</td>
@@ -279,86 +248,118 @@ export default function DoctorDashboard() {
         )}
       </div>
 
+      {/* ═══════ SECCIÓN 2: Consultar Agenda (Filtro con 2 calendarios) ═══════ */}
       <div className="card">
-        {loading ? (
-          <div className="skeleton" style={{ height: '200px' }} />
-        ) : consultas.length === 0 ? (
-          <div className="empty-state">
-            <FiUser className="empty-state-icon" />
-            <h3 className="empty-state-title">No hay pacientes en espera</h3>
+        <h3 style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <FiCalendar style={{ color: '#34d399' }} /> Consultar Agenda
+        </h3>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '16px' }}>
+          Seleccioná una <strong>Fecha Desde</strong> para ver los turnos de un día en particular.
+          Si querés ver un lapso, completá también la <strong>Fecha Hasta</strong>.
+        </p>
+
+        <div style={{ display: 'flex', gap: '20px', marginBottom: '20px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+          <div className="input-group" style={{ width: '200px', marginBottom: 0 }}>
+            <label htmlFor="doc-fecha-desde">Fecha Desde <span style={{ color: '#f87171' }}>*</span></label>
+            <input
+              id="doc-fecha-desde"
+              type="date"
+              className="input-field"
+              value={filterFechaDesde}
+              onChange={(e) => {
+                setFilterFechaDesde(e.target.value);
+                // Si "hasta" es anterior a "desde", limpiar "hasta"
+                if (filterFechaHasta && e.target.value > filterFechaHasta) {
+                  setFilterFechaHasta('');
+                }
+              }}
+            />
           </div>
+          <div className="input-group" style={{ width: '200px', marginBottom: 0 }}>
+            <label htmlFor="doc-fecha-hasta">Fecha Hasta <span style={{ color: 'var(--text-secondary)', fontWeight: 400 }}>(opcional)</span></label>
+            <input
+              id="doc-fecha-hasta"
+              type="date"
+              className="input-field"
+              value={filterFechaHasta}
+              min={filterFechaDesde || undefined}
+              onChange={(e) => setFilterFechaHasta(e.target.value)}
+              disabled={!filterFechaDesde}
+            />
+          </div>
+          {(filterFechaDesde || filterFechaHasta) && (
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={() => { setFilterFechaDesde(''); setFilterFechaHasta(''); }}
+              style={{ height: '38px' }}
+            >
+              Limpiar filtro
+            </button>
+          )}
+        </div>
+
+        {!filterFechaDesde ? (
+          <div className="empty-state" style={{ padding: '32px 16px' }}>
+            <FiFilter className="empty-state-icon" style={{ fontSize: '2rem' }} />
+            <h3 className="empty-state-title">Seleccioná una fecha para consultar tu agenda</h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Ingresá una fecha en "Fecha Desde" para ver los turnos de ese día, o agregá "Fecha Hasta" para un rango.</p>
+          </div>
+        ) : turnosFiltrados.length === 0 ? (
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+            {filterFechaHasta && filterFechaHasta > filterFechaDesde
+              ? `No tenés turnos registrados entre ${filterFechaDesde} y ${filterFechaHasta}.`
+              : `No tenés turnos registrados para el día ${filterFechaDesde}.`}
+          </p>
         ) : (
-          <div className="table-container">
-            <table>
-              <thead>
-                <tr>
-                  <th>Turno</th>
-                  <th>Paciente</th>
-                  <th>Edad</th>
-                  <th>Tipo</th>
-                  <th>Estado Consulta</th>
-                  <th>Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {consultas.map((c) => {
-                  const estadoActual = c.estados[c.estados.length - 1]?.estadoConsulta.codEc;
-                  return (
-                    <tr key={c.id}>
-                      <td>{new Date(c.turno.fechaHoraPlanificado).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}</td>
-                      <td>{c.turno.paciente?.nombrePaciente || 'S/N'}</td>
-                      <td>{c.turno.paciente ? new Date().getFullYear() - new Date(c.turno.paciente.fechaNacimiento).getFullYear() : '-'} años</td>
+          <>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', marginBottom: '10px' }}>
+              {filterFechaHasta && filterFechaHasta > filterFechaDesde
+                ? `Mostrando ${turnosFiltrados.length} turno(s) entre ${filterFechaDesde} y ${filterFechaHasta}`
+                : `Mostrando ${turnosFiltrados.length} turno(s) para el ${filterFechaDesde}`}
+            </p>
+            <div className="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Fecha y Hora</th>
+                    <th>Paciente</th>
+                    <th>DNI</th>
+                    <th>Teléfono</th>
+                    <th>Motivo de Consulta</th>
+                    <th>Estado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {turnosFiltrados.map((t: any) => (
+                    <tr key={t.id}>
                       <td>
-                        <span className={`badge badge-${c.turno.tipoTurno.codTipoTurno === 'URGENCIA' ? 'danger' : 'primary'}`}>
-                          {c.turno.tipoTurno.nombreTipoTurno}
-                        </span>
+                        <strong>
+                          {new Date(t.fechaHoraPlanificado).toLocaleString('es-AR', {
+                            dateStyle: 'short',
+                            timeStyle: 'short',
+                          })}
+                        </strong>
                       </td>
+                      <td>{t.pacienteNombre}</td>
+                      <td>{t.pacienteDni}</td>
+                      <td>{t.pacienteTel}</td>
+                      <td>{t.descripcion || 'Sin motivo especificado'}</td>
                       <td>
-                        <span className="badge badge-accent">{estadoActual}</span>
-                      </td>
-                      <td>
-                        <div style={{ display: 'flex', gap: '8px' }}>
-                          {estadoActual === 'PENDIENTE' && (
-                            <button
-                              className="btn btn-danger btn-sm"
-                              onClick={() => {
-                                setSelectedConsulta(c);
-                                setPriorizarOpen(true);
-                              }}
-                            >
-                              <FiAlertTriangle /> Priorizar
-                            </button>
-                          )}
-                          {estadoActual === 'EN_ESPERA' && (
-                            <button
-                              className="btn btn-primary btn-sm"
-                              onClick={(e) => {
-                                setSelectedConsulta(c);
-                                handleAvanzarConsulta(e);
-                              }}
-                            >
-                              Iniciar Atención
-                            </button>
-                          )}
-                          {estadoActual === 'EN_CURSO' && (
-                            <button
-                              className="btn btn-success btn-sm"
-                              onClick={() => {
-                                setSelectedConsulta(c);
-                                setAtenderOpen(true);
-                              }}
-                            >
-                              <FiCheck /> Finalizar Consulta
-                            </button>
-                          )}
-                        </div>
+                        {t.estado === 'CANCELADO' ? (
+                          <span className="badge badge-danger">CANCELADO — Sobreturno disponible</span>
+                        ) : t.estado === 'PRESENTE' ? (
+                          <span className="badge badge-success">PRESENTE</span>
+                        ) : (
+                          <span className="badge badge-warning">{t.estado}</span>
+                        )}
                       </td>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
 
