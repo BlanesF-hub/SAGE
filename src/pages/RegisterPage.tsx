@@ -21,6 +21,7 @@ export default function RegisterPage() {
     nombre: '',
     nroTelefono: '',
     dniPaciente: '',
+    edad: '',
     fechaNacimiento: '',
     direccionPaciente: '',
     tipoPaciente: 'PARTICULAR' as TipoPaciente,
@@ -36,13 +37,16 @@ export default function RegisterPage() {
     e.preventDefault();
     setLoading(true);
     try {
+      const edadNum = Number(form.edad);
+      const calcBirth = form.fechaNacimiento || `${new Date().getFullYear() - edadNum}-01-01`;
       await authApi.registerPaciente({
         usuario: form.usuario,
         contrasena: form.contrasena,
         nombrePaciente: form.nombre,
         dniPaciente: Number(form.dniPaciente),
         nroTelefonoPaciente: form.nroTelefono || undefined,
-        fechaNacimiento: form.fechaNacimiento,
+        edad: edadNum,
+        fechaNacimiento: calcBirth,
         direccionPaciente: form.direccionPaciente || undefined,
         tipoPaciente: form.tipoPaciente,
         nroAfiliado: form.nroAfiliado ? Number(form.nroAfiliado) : undefined,
@@ -116,9 +120,17 @@ export default function RegisterPage() {
                 value={form.dniPaciente} onChange={(e) => update('dniPaciente', e.target.value)} />
             </div>
             <div className="input-group">
-              <label htmlFor="reg-nacimiento">Fecha de Nacimiento</label>
-              <input id="reg-nacimiento" className="input-field" type="date" required
-                value={form.fechaNacimiento} onChange={(e) => update('fechaNacimiento', e.target.value)} />
+              <label htmlFor="reg-edad">Edad (años)</label>
+              <input id="reg-edad" className="input-field" type="number" min="0" max="120" required
+                value={form.edad} onChange={(e) => {
+                  const val = e.target.value;
+                  update('edad', val);
+                  if (val) {
+                    const birthYear = new Date().getFullYear() - Number(val);
+                    update('fechaNacimiento', `${birthYear}-05-15`);
+                  }
+                }}
+                placeholder="Ej. 50" />
             </div>
           </div>
 

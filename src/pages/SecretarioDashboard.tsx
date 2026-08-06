@@ -62,12 +62,17 @@ export default function SecretarioDashboard() {
       });
 
       const enriched = filtered.map((t: any) => {
-        const pac = allPacientes.find((p: any) => p.id === t.pacienteId);
+        const pac = allPacientes.find((p: any) => p.id === t.pacienteId || String(p.usuario) === String(t.pacienteId));
+        let edad = pac?.edad;
+        if (edad === undefined && pac?.fechaNacimiento) {
+          edad = new Date().getFullYear() - new Date(pac.fechaNacimiento).getFullYear();
+        }
         return {
           ...t,
           pacienteNombre: pac?.nombrePaciente || t.doctor?.nombrePaciente || 'Paciente',
           pacienteDni: pac?.dniPaciente || '-',
           pacienteTel: pac?.nroTelefonoPaciente || pac?.nroTelefono || '-',
+          pacienteEdad: edad !== undefined ? `${edad} años` : '-',
         };
       });
 
@@ -217,6 +222,7 @@ export default function SecretarioDashboard() {
                 <tr>
                   <th>Hora</th>
                   <th>Paciente</th>
+                  <th>Edad</th>
                   <th>DNI</th>
                   <th>Teléfono</th>
                   <th>Médico</th>
@@ -230,6 +236,7 @@ export default function SecretarioDashboard() {
                   <tr key={turno.id}>
                     <td>{new Date(turno.fechaHoraPlanificado).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}</td>
                     <td>{turno.pacienteNombre}</td>
+                    <td>{turno.pacienteEdad}</td>
                     <td>{turno.pacienteDni}</td>
                     <td>{turno.pacienteTel}</td>
                     <td>{turno.doctor?.nombreEmpleado || 'Dr.'}</td>

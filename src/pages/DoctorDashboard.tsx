@@ -55,12 +55,17 @@ export default function DoctorDashboard({ view = 'principal' }: DoctorDashboardP
     const allPacientes = JSON.parse(localStorage.getItem('mock_pacientes') || '[]');
     const myTurnos = allTurnos.filter((t: any) => String(t.doctorId) === String(user.id));
     const enriched = myTurnos.map((t: any) => {
-      const pac = allPacientes.find((p: any) => p.id === t.pacienteId);
+      const pac = allPacientes.find((p: any) => p.id === t.pacienteId || String(p.usuario) === String(t.pacienteId));
+      let edad = pac?.edad;
+      if (edad === undefined && pac?.fechaNacimiento) {
+        edad = new Date().getFullYear() - new Date(pac.fechaNacimiento).getFullYear();
+      }
       return {
         ...t,
         pacienteNombre: pac?.nombrePaciente || 'Paciente',
         pacienteDni: pac?.dniPaciente || '-',
         pacienteTel: pac?.nroTelefonoPaciente || pac?.nroTelefono || '-',
+        pacienteEdad: edad !== undefined ? `${edad} años` : '-',
       };
     });
     setTurnosDia(enriched);
@@ -244,6 +249,7 @@ export default function DoctorDashboard({ view = 'principal' }: DoctorDashboardP
                     <tr>
                       <th>Hora</th>
                       <th>Paciente</th>
+                      <th>Edad</th>
                       <th>DNI</th>
                       <th>Teléfono</th>
                       <th>Motivo de Consulta</th>
@@ -259,6 +265,7 @@ export default function DoctorDashboard({ view = 'principal' }: DoctorDashboardP
                           </strong>
                         </td>
                         <td>{t.pacienteNombre}</td>
+                        <td>{t.pacienteEdad}</td>
                         <td>{t.pacienteDni}</td>
                         <td>{t.pacienteTel}</td>
                         <td>{t.descripcion || 'Sin motivo especificado'}</td>
@@ -468,6 +475,7 @@ export default function DoctorDashboard({ view = 'principal' }: DoctorDashboardP
                     <tr>
                       <th>Fecha y Hora</th>
                       <th>Paciente</th>
+                      <th>Edad</th>
                       <th>DNI</th>
                       <th>Teléfono</th>
                       <th>Motivo de Consulta</th>
@@ -486,6 +494,7 @@ export default function DoctorDashboard({ view = 'principal' }: DoctorDashboardP
                           </strong>
                         </td>
                         <td>{t.pacienteNombre}</td>
+                        <td>{t.pacienteEdad}</td>
                         <td>{t.pacienteDni}</td>
                         <td>{t.pacienteTel}</td>
                         <td>{t.descripcion || 'Sin motivo especificado'}</td>

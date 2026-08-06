@@ -286,7 +286,8 @@ const SEED_DATA: Record<string, any[]> = {
     { id: 201, usuario: 'sec_marcela', contrasena: 'sec123', nombreEmpleado: 'Marcela Fernández', codSecretario: 'SEC-501', consultorioId: 1, esProvisoria: false },
   ],
   mock_pacientes: [
-    { id: 301, usuario: 'paciente_juan', contrasena: 'pac123', nombrePaciente: 'Juan Pérez', dniPaciente: 35123456, rol: 'PACIENTE', esProvisoria: false },
+    { id: 301, usuario: 'jperez', contrasena: 'pac123', nombrePaciente: 'Juan Pérez', dniPaciente: 35123456, edad: 50, fechaNacimiento: '1976-05-15', rol: 'PACIENTE', esProvisoria: false },
+    { id: 302, usuario: 'paciente_juan', contrasena: 'pac123', nombrePaciente: 'Juan Pérez', dniPaciente: 35123456, edad: 50, fechaNacimiento: '1976-05-15', rol: 'PACIENTE', esProvisoria: false },
   ],
 };
 
@@ -298,7 +299,19 @@ const getLocal = <T>(key: string): T[] => {
     localStorage.setItem(key, JSON.stringify(defaultData));
     return defaultData as T[];
   }
-  return JSON.parse(raw);
+  const parsed = JSON.parse(raw);
+  if (key === 'mock_pacientes') {
+    // Asegurar que jperez tenga 50 años siempre
+    parsed.forEach((p: any) => {
+      if (p.usuario === 'jperez' || p.usuario === 'paciente_juan') {
+        p.edad = 50;
+        p.fechaNacimiento = '1976-05-15';
+      } else if (!p.edad && p.fechaNacimiento) {
+        p.edad = new Date().getFullYear() - new Date(p.fechaNacimiento).getFullYear();
+      }
+    });
+  }
+  return parsed as T[];
 };
 const setLocal = (key: string, data: any) => localStorage.setItem(key, JSON.stringify(data));
 const saveMock = (key: string, data: any) => {

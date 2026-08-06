@@ -129,6 +129,7 @@ export interface Paciente {
   usuario: string;
   dniPaciente: number;
   nroTelefonoPaciente?: string;
+  edad?: number;
   fechaNacimiento: string;
   direccionPaciente?: string;
   fechaHoraAlta: string;
@@ -188,6 +189,8 @@ export interface LoginResponse {
   usuario: string;
   nombre: string;
   rol: Rol;
+  edad?: number;
+  fechaNacimiento?: string;
   consultorioId?: number;
   forcePasswordChange: boolean;
 }
@@ -198,7 +201,8 @@ export interface RegisterPacienteRequest {
   nombrePaciente: string;
   dniPaciente: number;
   nroTelefonoPaciente?: string;
-  fechaNacimiento: string;
+  edad?: number;
+  fechaNacimiento?: string;
   direccionPaciente?: string;
   tipoPaciente: TipoPaciente;
   nroAfiliado?: number;

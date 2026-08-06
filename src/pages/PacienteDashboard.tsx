@@ -166,6 +166,29 @@ export default function PacienteDashboard() {
       const consultorio = consultorios.find((c) => String(c.id) === String(selectedConsultorioId));
       const espNombre = resolveEspecialidadNombre(selectedEspecialidad);
 
+      // Regla 0: Validación de Edad del Paciente vs Restricciones del Médico
+      let edadPaciente = (user as any)?.edad;
+      if (edadPaciente === undefined && (user as any)?.fechaNacimiento) {
+        edadPaciente = new Date().getFullYear() - new Date((user as any).fechaNacimiento).getFullYear();
+      }
+      if (edadPaciente === undefined) edadPaciente = 50;
+
+      const docConfig = doctor?.configuracion || {};
+      const edadMin = doctor?.edadMinima || docConfig.edadMinima;
+      const edadMax = doctor?.edadMaxima || docConfig.edadMaxima;
+
+      if (edadMin !== undefined && edadMin !== null && edadMin !== '' && edadPaciente < Number(edadMin)) {
+        toast.error(`El ${doctor?.nombreEmpleado || 'médico'} sólo atiende pacientes a partir de los ${edadMin} años (tu edad registrada es ${edadPaciente} años).`);
+        setSubmitting(false);
+        return;
+      }
+
+      if (edadMax !== undefined && edadMax !== null && edadMax !== '' && edadPaciente > Number(edadMax)) {
+        toast.error(`El ${doctor?.nombreEmpleado || 'médico'} sólo atiende pacientes de hasta ${edadMax} años (tu edad registrada es ${edadPaciente} años).`);
+        setSubmitting(false);
+        return;
+      }
+
       const storedTurnos = getLocal<any>('mock_turnos_paciente').filter(
         (t: any) => t.pacienteId === user.id && t.estado !== 'CANCELADO'
       );
