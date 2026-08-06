@@ -168,7 +168,8 @@ ON CONFLICT (id) DO NOTHING;
 -- Admins de Consultorio
 INSERT INTO admins_consultorio (usuario, contrasena, nombre_empleado, consultorio_id, es_provisoria) VALUES
   ('admin_sangabriel', 'admin123', 'Gladys Aruta (Admin San Gabriel)', 1, FALSE),
-  ('admin_saludvida', 'admin123', 'Carlos López (Admin Salud)', 2, FALSE)
+  ('admin_saludvida', 'admin123', 'Carlos López (Admin Salud)', 2, FALSE),
+  ('Gladys123', 'admin123', 'Gladys Aruta (Admin General)', 1, FALSE)
 ON CONFLICT (usuario) DO NOTHING;
 
 -- Secretarios

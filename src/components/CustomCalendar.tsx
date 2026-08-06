@@ -81,6 +81,9 @@ export default function CustomCalendar({
     // Si no se permiten días pasados y la fecha es anterior a hoy
     if (!allowPastDays && d < today) return false;
 
+    // Si se permiten días pasados (ej. consulta de agenda / filtros), el día es seleccionable
+    if (allowPastDays) return true;
+
     // Si hay turnos agendados en esta fecha específica -> Disponible
     if (fechasConTurnos && fechasConTurnos.has(iso)) return true;
 
@@ -90,8 +93,8 @@ export default function CustomCalendar({
       return diasDisponibles.has(dayOfWeek);
     }
 
-    // Si no se definieron días de atención ni turnos, el día no es seleccionable
-    return false;
+    // Si no se definieron días de atención ni turnos específicos, permitir días futuros por defecto
+    return true;
   };
 
   const handleDayClick = (day: number) => {
