@@ -66,7 +66,7 @@ export default function DoctorDashboard() {
   const diasDisponibles = useMemo(() => {
     if (!user) return new Set<number>();
     const doctores = JSON.parse(localStorage.getItem('mock_doctores') || '[]');
-    const me = doctores.find((d: any) => d.id === user.id);
+    const me = doctores.find((d: any) => String(d.id) === String(user.id) || d.usuario === user.usuario);
     const agenda = me?.configuracion?.agenda || [];
     return new Set<number>(agenda.map((a: any) => Number(a.diaSemana)));
   }, [user]);

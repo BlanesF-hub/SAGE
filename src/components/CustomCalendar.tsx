@@ -77,13 +77,21 @@ export default function CustomCalendar({
     const iso = toISO(day);
     const d = new Date(viewYear, viewMonth, day);
     d.setHours(0, 0, 0, 0);
+
+    // Si no se permiten días pasados y la fecha es anterior a hoy
     if (!allowPastDays && d < today) return false;
 
+    // Si hay turnos agendados en esta fecha específica -> Disponible
     if (fechasConTurnos && fechasConTurnos.has(iso)) return true;
-    if (!diasDisponibles || diasDisponibles.size === 0) return true;
 
-    const dayOfWeek = d.getDay() === 0 ? 7 : d.getDay();
-    return diasDisponibles.has(dayOfWeek);
+    // Si el médico tiene días de atención asignados -> SOLO se pueden clickear sus días de la semana
+    if (diasDisponibles && diasDisponibles.size > 0) {
+      const dayOfWeek = d.getDay() === 0 ? 7 : d.getDay(); // 1=Lun...7=Dom
+      return diasDisponibles.has(dayOfWeek);
+    }
+
+    // Si no se definieron días de atención ni turnos, el día no es seleccionable
+    return false;
   };
 
   const handleDayClick = (day: number) => {

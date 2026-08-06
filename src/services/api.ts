@@ -231,6 +231,25 @@ const SEED_DATA: Record<string, any[]> = {
   ],
   mock_doctores: [
     {
+      id: 3,
+      usuario: 'doctor',
+      contrasena: 'admin123',
+      nombreEmpleado: 'Dr. Gladys Aruta',
+      codDoctor: 'MAT-999',
+      consultorioId: 1,
+      esProvisoria: false,
+      configuracion: {
+        codEspecialidad: 'CLINICA',
+        agenda: [
+          { diaSemana: 1, horaInicio: '08:00', horaFin: '13:00', tiempoMaximoEspera: 15, salaId: 1 },
+          { diaSemana: 2, horaInicio: '08:00', horaFin: '13:00', tiempoMaximoEspera: 15, salaId: 1 },
+          { diaSemana: 3, horaInicio: '08:00', horaFin: '13:00', tiempoMaximoEspera: 15, salaId: 1 },
+          { diaSemana: 4, horaInicio: '08:00', horaFin: '13:00', tiempoMaximoEspera: 15, salaId: 1 },
+          { diaSemana: 5, horaInicio: '08:00', horaFin: '13:00', tiempoMaximoEspera: 15, salaId: 1 },
+        ],
+      },
+    },
+    {
       id: 101,
       usuario: 'dr_perez',
       contrasena: 'doc123',
