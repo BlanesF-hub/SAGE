@@ -7,7 +7,11 @@ import './CustomCalendar.css';
 
 interface Props {
   /** Set de números de día de semana disponibles (1=Lun...7=Dom) */
-  diasDisponibles: Set<number>;
+  diasDisponibles?: Set<number>;
+  /** Set de fechas (YYYY-MM-DD) que poseen turnos agendados */
+  fechasConTurnos?: Set<string>;
+  /** Si true, permite seleccionar días pasados (útil para auditoría de médicos/secretarios) */
+  allowPastDays?: boolean;
   /** Fecha seleccionada en formato YYYY-MM-DD */
   selectedDate: string;
   onChange: (date: string) => void;
@@ -16,7 +20,13 @@ interface Props {
 const DIAS_SEMANA = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
-export default function CustomCalendar({ diasDisponibles, selectedDate, onChange }: Props) {
+export default function CustomCalendar({
+  diasDisponibles,
+  fechasConTurnos,
+  allowPastDays = false,
+  selectedDate,
+  onChange,
+}: Props) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -33,9 +43,7 @@ export default function CustomCalendar({ diasDisponibles, selectedDate, onChange
     else setViewMonth(m => m + 1);
   };
 
-  // Primer día del mes (0=Dom...6=Sáb → convertimos a lun-first)
   const firstDay = new Date(viewYear, viewMonth, 1).getDay();
-  // En nuestro grid Lun=0, Mar=1,... Dom=6
   const firstDayLunFirst = firstDay === 0 ? 6 : firstDay - 1;
   const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
 
@@ -44,18 +52,26 @@ export default function CustomCalendar({ diasDisponibles, selectedDate, onChange
     ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
   ];
 
-  const isAvailable = (day: number) => {
-    const d = new Date(viewYear, viewMonth, day);
-    d.setHours(0, 0, 0, 0);
-    if (d < today) return false; // pasado
-    const dayOfWeek = d.getDay() === 0 ? 7 : d.getDay(); // 1=Lun...7=Dom
-    return diasDisponibles.has(dayOfWeek);
-  };
-
   const toISO = (day: number) => {
     const m = String(viewMonth + 1).padStart(2, '0');
     const d = String(day).padStart(2, '0');
     return `${viewYear}-${m}-${d}`;
+  };
+
+  const isAvailable = (day: number) => {
+    const iso = toISO(day);
+    const d = new Date(viewYear, viewMonth, day);
+    d.setHours(0, 0, 0, 0);
+    if (!allowPastDays && d < today) return false;
+
+    // Si hay fechasConTurnos explícitas, el día es activo si tiene turnos
+    if (fechasConTurnos && fechasConTurnos.has(iso)) return true;
+
+    // Si no se pasaron días disponibles o el Set está vacío, todos los días son seleccionables
+    if (!diasDisponibles || diasDisponibles.size === 0) return true;
+
+    const dayOfWeek = d.getDay() === 0 ? 7 : d.getDay(); // 1=Lun...7=Dom
+    return diasDisponibles.has(dayOfWeek);
   };
 
   const isSelected = (day: number) => toISO(day) === selectedDate;

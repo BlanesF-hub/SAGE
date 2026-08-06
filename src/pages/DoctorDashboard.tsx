@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { doctorApi, consultaApi, adminApi, consultorioAdminApi } from '../services/api';
 import type { Consulta, Especialidad } from '../types';
-import { FiActivity, FiUser, FiClock, FiAlertTriangle, FiCheck, FiSettings } from 'react-icons/fi';
+import { FiActivity, FiUser, FiClock, FiAlertTriangle, FiCheck, FiSettings, FiCalendar, FiFilter } from 'react-icons/fi';
+import CustomCalendar from '../components/CustomCalendar';
 import toast from 'react-hot-toast';
 
 export default function DoctorDashboard() {
@@ -32,6 +33,17 @@ export default function DoctorDashboard() {
   const [observaciones, setObservaciones] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  // Filtros de fecha
+  const todayStr = new Date().toISOString().split('T')[0];
+  const [filterMode, setFilterMode] = useState<'DIA' | 'LAPSO'>('DIA');
+  const [selectedDate, setSelectedDate] = useState(todayStr);
+  const [fechaDesde, setFechaDesde] = useState(todayStr);
+  const [fechaHasta, setFechaHasta] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 7);
+    return d.toISOString().split('T')[0];
+  });
+
   useEffect(() => {
     fetchConsultas();
     fetchEspecialidades();
@@ -55,6 +67,38 @@ export default function DoctorDashboard() {
     });
     setTurnosDia(enriched);
   };
+
+  // Días de atención del médico (1=Lun...7=Dom)
+  const diasDisponibles = useMemo(() => {
+    if (!user) return new Set<number>();
+    const doctores = JSON.parse(localStorage.getItem('mock_doctores') || '[]');
+    const me = doctores.find((d: any) => d.id === user.id);
+    const agenda = me?.configuracion?.agenda || [];
+    return new Set<number>(agenda.map((a: any) => Number(a.diaSemana)));
+  }, [user]);
+
+  // Fechas que contienen al menos 1 turno reservado
+  const fechasConTurnos = useMemo(() => {
+    const set = new Set<string>();
+    turnosDia.forEach((t: any) => {
+      if (t.fechaHoraPlanificado) {
+        set.add(t.fechaHoraPlanificado.substring(0, 10));
+      }
+    });
+    return set;
+  }, [turnosDia]);
+
+  // Turnos filtrados según fecha o lapso
+  const turnosFiltrados = useMemo(() => {
+    if (filterMode === 'DIA') {
+      return turnosDia.filter((t: any) => t.fechaHoraPlanificado?.startsWith(selectedDate));
+    } else {
+      return turnosDia.filter((t: any) => {
+        const f = t.fechaHoraPlanificado?.substring(0, 10);
+        return f >= fechaDesde && f <= fechaHasta;
+      });
+    }
+  }, [turnosDia, filterMode, selectedDate, fechaDesde, fechaHasta]);
 
   const fetchSalas = async () => {
     try {
@@ -173,13 +217,72 @@ export default function DoctorDashboard() {
         </button>
       </div>
 
-      {/* Sección Turnos del Médico */}
+      {/* Sección Turnos del Médico con Calendario y Filtro por Lapso */}
       <div className="card" style={{ marginBottom: '24px' }}>
-        <h3 style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <FiClock style={{ color: 'var(--primary-color)' }} /> Mis Turnos Programados
-        </h3>
-        {turnosDia.length === 0 ? (
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>No tenés turnos agendados por pacientes aún.</p>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+          <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <FiClock style={{ color: 'var(--primary-color)' }} /> Agenda y Turnos del Médico
+          </h3>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              className={`btn btn-sm ${filterMode === 'DIA' ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={() => setFilterMode('DIA')}
+            >
+              <FiCalendar /> Día Específico
+            </button>
+            <button
+              className={`btn btn-sm ${filterMode === 'LAPSO' ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={() => setFilterMode('LAPSO')}
+            >
+              <FiFilter /> Lapso de Días
+            </button>
+          </div>
+        </div>
+
+        {filterMode === 'DIA' ? (
+          <div style={{ marginBottom: '20px', maxWidth: '400px' }}>
+            <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '4px', display: 'block' }}>
+              Seleccioná un día del calendario para ver tus pacientes:
+            </label>
+            <CustomCalendar
+              diasDisponibles={diasDisponibles}
+              fechasConTurnos={fechasConTurnos}
+              allowPastDays={true}
+              selectedDate={selectedDate}
+              onChange={setSelectedDate}
+            />
+          </div>
+        ) : (
+          <div style={{ display: 'flex', gap: '16px', marginBottom: '20px', flexWrap: 'wrap' }}>
+            <div className="input-group" style={{ width: '180px' }}>
+              <label htmlFor="doc-fd">Fecha Desde</label>
+              <input
+                id="doc-fd"
+                type="date"
+                className="input-field"
+                value={fechaDesde}
+                onChange={(e) => setFechaDesde(e.target.value)}
+              />
+            </div>
+            <div className="input-group" style={{ width: '180px' }}>
+              <label htmlFor="doc-fh">Fecha Hasta</label>
+              <input
+                id="doc-fh"
+                type="date"
+                className="input-field"
+                value={fechaHasta}
+                onChange={(e) => setFechaHasta(e.target.value)}
+              />
+            </div>
+          </div>
+        )}
+
+        {turnosFiltrados.length === 0 ? (
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+            {filterMode === 'DIA'
+              ? `No tenés turnos registrados para el día ${selectedDate}.`
+              : `No tenés turnos registrados entre ${fechaDesde} y ${fechaHasta}.`}
+          </p>
         ) : (
           <div className="table-container">
             <table>
@@ -194,7 +297,7 @@ export default function DoctorDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {turnosDia.map((t: any) => (
+                {turnosFiltrados.map((t: any) => (
                   <tr key={t.id}>
                     <td>
                       <strong>

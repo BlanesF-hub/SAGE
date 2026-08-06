@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { adminApi, doctorApi, turnoApi, consultaApi, consultorioAdminApi } from '../services/api';
 import type { Turno, Doctor, Consultorio, Paciente } from '../types';
-import { FiCalendar, FiPlus, FiClock, FiCheck, FiAlertTriangle, FiUser, FiNavigation } from 'react-icons/fi';
+import { FiCalendar, FiPlus, FiClock, FiCheck, FiAlertTriangle, FiUser, FiNavigation, FiFilter } from 'react-icons/fi';
+import CustomCalendar from '../components/CustomCalendar';
 import toast from 'react-hot-toast';
 
 export default function SecretarioDashboard() {
@@ -10,7 +11,15 @@ export default function SecretarioDashboard() {
   const [turnos, setTurnos] = useState<Turno[]>([]);
   const [doctores, setDoctores] = useState<Doctor[]>([]);
   const [selectedDoctor, setSelectedDoctor] = useState('');
-  const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0]);
+  const todayStr = new Date().toISOString().split('T')[0];
+  const [filterMode, setFilterMode] = useState<'DIA' | 'LAPSO'>('DIA');
+  const [fecha, setFecha] = useState(todayStr);
+  const [fechaDesde, setFechaDesde] = useState(todayStr);
+  const [fechaHasta, setFechaHasta] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 7);
+    return d.toISOString().split('T')[0];
+  });
   const [loading, setLoading] = useState(true);
 
   // Modales
@@ -31,7 +40,7 @@ export default function SecretarioDashboard() {
 
   useEffect(() => {
     fetchTurnos();
-  }, [selectedDoctor, fecha]);
+  }, [selectedDoctor, fecha, filterMode, fechaDesde, fechaHasta]);
 
   const fetchDoctores = async () => {
     try {
@@ -48,9 +57,18 @@ export default function SecretarioDashboard() {
       const allTurnos = JSON.parse(localStorage.getItem('mock_turnos_paciente') || '[]');
       const allPacientes = JSON.parse(localStorage.getItem('mock_pacientes') || '[]');
       
-      let filtered = allTurnos.filter((t: any) => t.fechaHoraPlanificado?.startsWith(fecha));
+      let filtered = allTurnos;
       if (selectedDoctor) {
         filtered = filtered.filter((t: any) => String(t.doctorId) === String(selectedDoctor));
+      }
+
+      if (filterMode === 'DIA') {
+        filtered = filtered.filter((t: any) => t.fechaHoraPlanificado?.startsWith(fecha));
+      } else {
+        filtered = filtered.filter((t: any) => {
+          const f = t.fechaHoraPlanificado?.substring(0, 10);
+          return f >= fechaDesde && f <= fechaHasta;
+        });
       }
 
       const enriched = filtered.map((t: any) => {
@@ -70,6 +88,28 @@ export default function SecretarioDashboard() {
       setLoading(false);
     }
   };
+
+  // Días de atención del médico seleccionado
+  const diasDisponibles = useMemo(() => {
+    if (!selectedDoctor) return new Set<number>();
+    const doc = doctores.find((d: any) => String(d.id) === String(selectedDoctor));
+    const agenda = (doc as any)?.configuracion?.agenda || [];
+    return new Set<number>(agenda.map((a: any) => Number(a.diaSemana)));
+  }, [selectedDoctor, doctores]);
+
+  // Fechas que contienen al menos 1 turno reservado
+  const fechasConTurnos = useMemo(() => {
+    const allTurnos = JSON.parse(localStorage.getItem('mock_turnos_paciente') || '[]');
+    const set = new Set<string>();
+    allTurnos.forEach((t: any) => {
+      if (t.fechaHoraPlanificado) {
+        if (!selectedDoctor || String(t.doctorId) === String(selectedDoctor)) {
+          set.add(t.fechaHoraPlanificado.substring(0, 10));
+        }
+      }
+    });
+    return set;
+  }, [selectedDoctor]);
 
   const handleMarcarPresente = (turnoId: number) => {
     const allTurnos = JSON.parse(localStorage.getItem('mock_turnos_paciente') || '[]');
@@ -138,33 +178,78 @@ export default function SecretarioDashboard() {
       </div>
 
       {/* Filtros */}
-      <div className="card" style={{ marginBottom: '24px', display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-        <div className="input-group" style={{ flex: 1, minWidth: '200px' }}>
-          <label htmlFor="filter-doctor">Filtrar por Médico</label>
-          <select
-            id="filter-doctor"
-            className="input-field"
-            value={selectedDoctor}
-            onChange={(e) => setSelectedDoctor(e.target.value)}
-          >
-            <option value="">Todos los médicos</option>
-            {doctores.map((d) => (
-              <option key={d.id} value={d.id}>
-                {d.nombreEmpleado}
-              </option>
-            ))}
-          </select>
+      <div className="card" style={{ marginBottom: '24px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+          <div className="input-group" style={{ flex: 1, minWidth: '220px', marginBottom: 0 }}>
+            <label htmlFor="filter-doctor">Filtrar por Médico</label>
+            <select
+              id="filter-doctor"
+              className="input-field"
+              value={selectedDoctor}
+              onChange={(e) => setSelectedDoctor(e.target.value)}
+            >
+              <option value="">Todos los médicos</option>
+              {doctores.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.nombreEmpleado}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              className={`btn btn-sm ${filterMode === 'DIA' ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={() => setFilterMode('DIA')}
+            >
+              <FiCalendar /> Día Específico
+            </button>
+            <button
+              className={`btn btn-sm ${filterMode === 'LAPSO' ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={() => setFilterMode('LAPSO')}
+            >
+              <FiFilter /> Lapso de Días
+            </button>
+          </div>
         </div>
-        <div className="input-group" style={{ width: '180px' }}>
-          <label htmlFor="filter-fecha">Fecha</label>
-          <input
-            id="filter-fecha"
-            type="date"
-            className="input-field"
-            value={fecha}
-            onChange={(e) => setFecha(e.target.value)}
-          />
-        </div>
+
+        {filterMode === 'DIA' ? (
+          <div style={{ maxWidth: '400px' }}>
+            <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '4px', display: 'block' }}>
+              Seleccioná una fecha del calendario:
+            </label>
+            <CustomCalendar
+              diasDisponibles={diasDisponibles}
+              fechasConTurnos={fechasConTurnos}
+              allowPastDays={true}
+              selectedDate={fecha}
+              onChange={setFecha}
+            />
+          </div>
+        ) : (
+          <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+            <div className="input-group" style={{ width: '180px' }}>
+              <label htmlFor="sec-fd">Fecha Desde</label>
+              <input
+                id="sec-fd"
+                type="date"
+                className="input-field"
+                value={fechaDesde}
+                onChange={(e) => setFechaDesde(e.target.value)}
+              />
+            </div>
+            <div className="input-group" style={{ width: '180px' }}>
+              <label htmlFor="sec-fh">Fecha Hasta</label>
+              <input
+                id="sec-fh"
+                type="date"
+                className="input-field"
+                value={fechaHasta}
+                onChange={(e) => setFechaHasta(e.target.value)}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="card">
