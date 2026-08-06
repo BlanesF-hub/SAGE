@@ -23,7 +23,8 @@ const NAV_ITEMS: Record<string, { label: string; icon: JSX.Element; path: string
     { label: 'Agenda', icon: <FiCalendar />, path: '/secretario' },
   ],
   DOCTOR: [
-    { label: 'Consultas', icon: <FiActivity />, path: '/doctor' },
+    { label: 'Panel principal', icon: <FiActivity />, path: '/doctor' },
+    { label: 'Agenda', icon: <FiCalendar />, path: '/doctor/agenda' },
   ],
   ADMIN_GENERAL: [
     { label: 'Dashboard', icon: <FiHome />, path: '/admin' },
@@ -62,6 +63,7 @@ export default function Layout() {
             <NavLink
               key={item.path}
               to={item.path}
+              end={item.path === '/doctor'}
               className={({ isActive }) =>
                 `sidebar-link ${isActive ? 'sidebar-link--active' : ''}`
               }

@@ -6,7 +6,11 @@ import { FiUser, FiClock, FiAlertTriangle, FiCheck, FiSettings, FiCalendar, FiFi
 import CustomCalendar from '../components/CustomCalendar';
 import toast from 'react-hot-toast';
 
-export default function DoctorDashboard() {
+interface DoctorDashboardProps {
+  view?: 'principal' | 'agenda';
+}
+
+export default function DoctorDashboard({ view = 'principal' }: DoctorDashboardProps) {
   const { user } = useAuth();
   const [consultas, setConsultas] = useState<Consulta[]>([]);
   const [especialidades, setEspecialidades] = useState<Especialidad[]>([]);
@@ -199,8 +203,12 @@ export default function DoctorDashboard() {
     <div className="page-container animate-fade-in">
       <div className="page-header">
         <div>
-          <h1 className="page-title">Panel Médico</h1>
-          <p className="page-subtitle">Atención de pacientes, evolución de consultas y urgencias</p>
+          <h1 className="page-title">{view === 'principal' ? 'Panel principal' : 'Agenda'}</h1>
+          <p className="page-subtitle">
+            {view === 'principal'
+              ? 'Atención de pacientes del día, evolución de consultas y urgencias'
+              : 'Consulta de turnos programados por fecha única o lapso de fechas'}
+          </p>
         </div>
         <button id="btn-config-doc" className="btn btn-secondary" onClick={() => {
            const currentUser = JSON.parse(localStorage.getItem('sage_user') || '{}');
@@ -215,199 +223,290 @@ export default function DoctorDashboard() {
         </button>
       </div>
 
-      {/* ═══════ SECCIÓN 1: Turnos del Día (HOY) ═══════ */}
-      <div className="card" style={{ marginBottom: '24px' }}>
-        <h3 style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <FiClock style={{ color: 'var(--primary-color)' }} /> Turnos del Día — {new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-        </h3>
+      {view === 'principal' ? (
+        <>
+          {/* ═══════ SECCIÓN PANEL PRINCIPAL: Turnos del Día (HOY) ═══════ */}
+          <div className="card" style={{ marginBottom: '24px' }}>
+            <h3 style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <FiClock style={{ color: 'var(--primary-color)' }} /> Turnos del Día — {new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+            </h3>
 
-        {turnosHoy.length === 0 ? (
-          <div className="empty-state" style={{ padding: '32px 16px' }}>
-            <FiUser className="empty-state-icon" />
-            <h3 className="empty-state-title">No tenés turnos programados para hoy</h3>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Usá la sección "Consultar Agenda" para explorar otros días.</p>
-          </div>
-        ) : (
-          <div className="table-container">
-            <table>
-              <thead>
-                <tr>
-                  <th>Hora</th>
-                  <th>Paciente</th>
-                  <th>DNI</th>
-                  <th>Teléfono</th>
-                  <th>Motivo de Consulta</th>
-                  <th>Estado</th>
-                </tr>
-              </thead>
-              <tbody>
-                {turnosHoy.map((t: any) => (
-                  <tr key={t.id}>
-                    <td>
-                      <strong>
-                        {new Date(t.fechaHoraPlanificado).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
-                      </strong>
-                    </td>
-                    <td>{t.pacienteNombre}</td>
-                    <td>{t.pacienteDni}</td>
-                    <td>{t.pacienteTel}</td>
-                    <td>{t.descripcion || 'Sin motivo especificado'}</td>
-                    <td>
-                      {t.estado === 'CANCELADO' ? (
-                        <span className="badge badge-danger">CANCELADO — Sobreturno disponible</span>
-                      ) : t.estado === 'PRESENTE' ? (
-                        <span className="badge badge-success">PRESENTE</span>
-                      ) : (
-                        <span className="badge badge-warning">{t.estado}</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      {/* ═══════ SECCIÓN 2: Consultar Agenda (Filtro con 2 calendarios) ═══════ */}
-      <div className="card">
-        <h3 style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <FiCalendar style={{ color: '#34d399' }} /> Consultar Agenda
-        </h3>
-        <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '16px' }}>
-          Seleccioná una <strong>Fecha Desde</strong> para ver los turnos de un día en particular.
-          Si querés ver un lapso, completá también la <strong>Fecha Hasta</strong>.
-        </p>
-
-        <div style={{ display: 'flex', gap: '24px', marginBottom: '20px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
-          {/* Calendario DESDE */}
-          <div style={{ flex: '1 1 300px', maxWidth: '420px' }}>
-            <label style={{ fontSize: '0.85rem', color: '#34d399', fontWeight: 600, marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <FiCalendar /> Fecha Desde <span style={{ color: '#f87171' }}>*</span>
-            </label>
-            <CustomCalendar
-              diasDisponibles={diasDisponibles}
-              fechasConTurnos={fechasConTurnos}
-              allowPastDays={true}
-              selectedDate={filterFechaDesde}
-              onChange={(d) => {
-                setFilterFechaDesde(d);
-                if (filterFechaHasta && d > filterFechaHasta) setFilterFechaHasta('');
-              }}
-            />
-            {filterFechaDesde && (
-              <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span className="badge badge-primary" style={{ fontSize: '0.82rem' }}>
-                  Desde: {filterFechaDesde}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => { setFilterFechaDesde(''); setFilterFechaHasta(''); }}
-                  style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
-                  title="Limpiar"
-                >
-                  <FiX />
-                </button>
+            {turnosHoy.length === 0 ? (
+              <div className="empty-state" style={{ padding: '32px 16px' }}>
+                <FiUser className="empty-state-icon" />
+                <h3 className="empty-state-title">No tenés turnos programados para hoy</h3>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Podés revisar tus turnos de otros días ingresando a la sección "Agenda".</p>
               </div>
-            )}
-          </div>
-
-          {/* Calendario HASTA */}
-          <div style={{ flex: '1 1 300px', maxWidth: '420px', opacity: filterFechaDesde ? 1 : 0.4, pointerEvents: filterFechaDesde ? 'auto' : 'none', transition: 'opacity 0.3s' }}>
-            <label style={{ fontSize: '0.85rem', color: '#a5b4fc', fontWeight: 600, marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <FiCalendar /> Fecha Hasta <span style={{ color: 'var(--text-secondary)', fontWeight: 400 }}>(opcional)</span>
-            </label>
-            <CustomCalendar
-              diasDisponibles={diasDisponibles}
-              fechasConTurnos={fechasConTurnos}
-              allowPastDays={true}
-              selectedDate={filterFechaHasta}
-              onChange={(d) => {
-                if (d >= filterFechaDesde) setFilterFechaHasta(d);
-                else toast.error('La fecha "Hasta" debe ser posterior a "Desde".');
-              }}
-            />
-            {filterFechaHasta && (
-              <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span className="badge badge-accent" style={{ fontSize: '0.82rem' }}>
-                  Hasta: {filterFechaHasta}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setFilterFechaHasta('')}
-                  style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
-                  title="Limpiar"
-                >
-                  <FiX />
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {!filterFechaDesde ? (
-          <div className="empty-state" style={{ padding: '32px 16px' }}>
-            <FiFilter className="empty-state-icon" style={{ fontSize: '2rem' }} />
-            <h3 className="empty-state-title">Seleccioná una fecha para consultar tu agenda</h3>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Ingresá una fecha en "Fecha Desde" para ver los turnos de ese día, o agregá "Fecha Hasta" para un rango.</p>
-          </div>
-        ) : turnosFiltrados.length === 0 ? (
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-            {filterFechaHasta && filterFechaHasta > filterFechaDesde
-              ? `No tenés turnos registrados entre ${filterFechaDesde} y ${filterFechaHasta}.`
-              : `No tenés turnos registrados para el día ${filterFechaDesde}.`}
-          </p>
-        ) : (
-          <>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', marginBottom: '10px' }}>
-              {filterFechaHasta && filterFechaHasta > filterFechaDesde
-                ? `Mostrando ${turnosFiltrados.length} turno(s) entre ${filterFechaDesde} y ${filterFechaHasta}`
-                : `Mostrando ${turnosFiltrados.length} turno(s) para el ${filterFechaDesde}`}
-            </p>
-            <div className="table-container">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Fecha y Hora</th>
-                    <th>Paciente</th>
-                    <th>DNI</th>
-                    <th>Teléfono</th>
-                    <th>Motivo de Consulta</th>
-                    <th>Estado</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {turnosFiltrados.map((t: any) => (
-                    <tr key={t.id}>
-                      <td>
-                        <strong>
-                          {new Date(t.fechaHoraPlanificado).toLocaleString('es-AR', {
-                            dateStyle: 'short',
-                            timeStyle: 'short',
-                          })}
-                        </strong>
-                      </td>
-                      <td>{t.pacienteNombre}</td>
-                      <td>{t.pacienteDni}</td>
-                      <td>{t.pacienteTel}</td>
-                      <td>{t.descripcion || 'Sin motivo especificado'}</td>
-                      <td>
-                        {t.estado === 'CANCELADO' ? (
-                          <span className="badge badge-danger">CANCELADO — Sobreturno disponible</span>
-                        ) : t.estado === 'PRESENTE' ? (
-                          <span className="badge badge-success">PRESENTE</span>
-                        ) : (
-                          <span className="badge badge-warning">{t.estado}</span>
-                        )}
-                      </td>
+            ) : (
+              <div className="table-container">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Hora</th>
+                      <th>Paciente</th>
+                      <th>DNI</th>
+                      <th>Teléfono</th>
+                      <th>Motivo de Consulta</th>
+                      <th>Estado</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {turnosHoy.map((t: any) => (
+                      <tr key={t.id}>
+                        <td>
+                          <strong>
+                            {new Date(t.fechaHoraPlanificado).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
+                          </strong>
+                        </td>
+                        <td>{t.pacienteNombre}</td>
+                        <td>{t.pacienteDni}</td>
+                        <td>{t.pacienteTel}</td>
+                        <td>{t.descripcion || 'Sin motivo especificado'}</td>
+                        <td>
+                          {t.estado === 'CANCELADO' ? (
+                            <span className="badge badge-danger">CANCELADO — Sobreturno disponible</span>
+                          ) : t.estado === 'PRESENTE' ? (
+                            <span className="badge badge-success">PRESENTE</span>
+                          ) : (
+                            <span className="badge badge-warning">{t.estado}</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {/* ═══════ SECCIÓN COLA DE PACIENTES / CONSULTAS ═══════ */}
+          <div className="card">
+            <h3 style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <FiUser style={{ color: '#6366f1' }} /> Pacientes en Espera
+            </h3>
+            {loading ? (
+              <div className="skeleton" style={{ height: '150px' }} />
+            ) : consultas.length === 0 ? (
+              <div className="empty-state" style={{ padding: '24px 16px' }}>
+                <FiUser className="empty-state-icon" />
+                <h3 className="empty-state-title">No hay pacientes en la sala de espera</h3>
+              </div>
+            ) : (
+              <div className="table-container">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Turno</th>
+                      <th>Paciente</th>
+                      <th>Edad</th>
+                      <th>Tipo</th>
+                      <th>Estado Consulta</th>
+                      <th>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {consultas.map((c) => {
+                      const estadoActual = c.estados[c.estados.length - 1]?.estadoConsulta.codEc;
+                      return (
+                        <tr key={c.id}>
+                          <td>{new Date(c.turno.fechaHoraPlanificado).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}</td>
+                          <td>{c.turno.paciente?.nombrePaciente || 'S/N'}</td>
+                          <td>{c.turno.paciente ? new Date().getFullYear() - new Date(c.turno.paciente.fechaNacimiento).getFullYear() : '-'} años</td>
+                          <td>
+                            <span className={`badge badge-${c.turno.tipoTurno.codTipoTurno === 'URGENCIA' ? 'danger' : 'primary'}`}>
+                              {c.turno.tipoTurno.nombreTipoTurno}
+                            </span>
+                          </td>
+                          <td>
+                            <span className="badge badge-accent">{estadoActual}</span>
+                          </td>
+                          <td>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                              {estadoActual === 'PENDIENTE' && (
+                                <button
+                                  className="btn btn-danger btn-sm"
+                                  onClick={() => {
+                                    setSelectedConsulta(c);
+                                    setPriorizarOpen(true);
+                                  }}
+                                >
+                                  <FiAlertTriangle /> Priorizar
+                                </button>
+                              )}
+                              {estadoActual === 'EN_ESPERA' && (
+                                <button
+                                  className="btn btn-primary btn-sm"
+                                  onClick={(e) => {
+                                    setSelectedConsulta(c);
+                                    handleAvanzarConsulta(e);
+                                  }}
+                                >
+                                  Iniciar Atención
+                                </button>
+                              )}
+                              {estadoActual === 'EN_CURSO' && (
+                                <button
+                                  className="btn btn-success btn-sm"
+                                  onClick={() => {
+                                    setSelectedConsulta(c);
+                                    setAtenderOpen(true);
+                                  }}
+                                >
+                                  <FiCheck /> Finalizar Consulta
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </>
+      ) : (
+        /* ═══════ VISTA AGENDA: Consultar Agenda (Calendarios Desde / Hasta) ═══════ */
+        <div className="card">
+          <h3 style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <FiCalendar style={{ color: '#34d399' }} /> Consultar Agenda
+          </h3>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '16px' }}>
+            Seleccioná una <strong>Fecha Desde</strong> para ver los turnos de un día en particular.
+            Si querés ver un lapso, completá también la <strong>Fecha Hasta</strong>.
+          </p>
+
+          <div style={{ display: 'flex', gap: '24px', marginBottom: '20px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
+            {/* Calendario DESDE */}
+            <div style={{ flex: '1 1 300px', maxWidth: '420px' }}>
+              <label style={{ fontSize: '0.85rem', color: '#34d399', fontWeight: 600, marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <FiCalendar /> Fecha Desde <span style={{ color: '#f87171' }}>*</span>
+              </label>
+              <CustomCalendar
+                diasDisponibles={diasDisponibles}
+                fechasConTurnos={fechasConTurnos}
+                allowPastDays={true}
+                selectedDate={filterFechaDesde}
+                onChange={(d) => {
+                  setFilterFechaDesde(d);
+                  if (filterFechaHasta && d > filterFechaHasta) setFilterFechaHasta('');
+                }}
+              />
+              {filterFechaDesde && (
+                <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span className="badge badge-primary" style={{ fontSize: '0.82rem' }}>
+                    Desde: {filterFechaDesde}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => { setFilterFechaDesde(''); setFilterFechaHasta(''); }}
+                    style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                    title="Limpiar"
+                  >
+                    <FiX />
+                  </button>
+                </div>
+              )}
             </div>
-          </>
-        )}
-      </div>
+
+            {/* Calendario HASTA */}
+            <div style={{ flex: '1 1 300px', maxWidth: '420px', opacity: filterFechaDesde ? 1 : 0.4, pointerEvents: filterFechaDesde ? 'auto' : 'none', transition: 'opacity 0.3s' }}>
+              <label style={{ fontSize: '0.85rem', color: '#a5b4fc', fontWeight: 600, marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <FiCalendar /> Fecha Hasta <span style={{ color: 'var(--text-secondary)', fontWeight: 400 }}>(opcional)</span>
+              </label>
+              <CustomCalendar
+                diasDisponibles={diasDisponibles}
+                fechasConTurnos={fechasConTurnos}
+                allowPastDays={true}
+                selectedDate={filterFechaHasta}
+                onChange={(d) => {
+                  if (d >= filterFechaDesde) setFilterFechaHasta(d);
+                  else toast.error('La fecha "Hasta" debe ser posterior a "Desde".');
+                }}
+              />
+              {filterFechaHasta && (
+                <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span className="badge badge-accent" style={{ fontSize: '0.82rem' }}>
+                    Hasta: {filterFechaHasta}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setFilterFechaHasta('')}
+                    style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                    title="Limpiar"
+                  >
+                    <FiX />
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {!filterFechaDesde ? (
+            <div className="empty-state" style={{ padding: '32px 16px' }}>
+              <FiFilter className="empty-state-icon" style={{ fontSize: '2rem' }} />
+              <h3 className="empty-state-title">Seleccioná una fecha para consultar tu agenda</h3>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Ingresá una fecha en "Fecha Desde" para ver los turnos de ese día, o agregá "Fecha Hasta" para un rango.</p>
+            </div>
+          ) : turnosFiltrados.length === 0 ? (
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+              {filterFechaHasta && filterFechaHasta > filterFechaDesde
+                ? `No tenés turnos registrados entre ${filterFechaDesde} y ${filterFechaHasta}.`
+                : `No tenés turnos registrados para el día ${filterFechaDesde}.`}
+            </p>
+          ) : (
+            <>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', marginBottom: '10px' }}>
+                {filterFechaHasta && filterFechaHasta > filterFechaDesde
+                  ? `Mostrando ${turnosFiltrados.length} turno(s) entre ${filterFechaDesde} y ${filterFechaHasta}`
+                  : `Mostrando ${turnosFiltrados.length} turno(s) para el ${filterFechaDesde}`}
+              </p>
+              <div className="table-container">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Fecha y Hora</th>
+                      <th>Paciente</th>
+                      <th>DNI</th>
+                      <th>Teléfono</th>
+                      <th>Motivo de Consulta</th>
+                      <th>Estado</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {turnosFiltrados.map((t: any) => (
+                      <tr key={t.id}>
+                        <td>
+                          <strong>
+                            {new Date(t.fechaHoraPlanificado).toLocaleString('es-AR', {
+                              dateStyle: 'short',
+                              timeStyle: 'short',
+                            })}
+                          </strong>
+                        </td>
+                        <td>{t.pacienteNombre}</td>
+                        <td>{t.pacienteDni}</td>
+                        <td>{t.pacienteTel}</td>
+                        <td>{t.descripcion || 'Sin motivo especificado'}</td>
+                        <td>
+                          {t.estado === 'CANCELADO' ? (
+                            <span className="badge badge-danger">CANCELADO — Sobreturno disponible</span>
+                          ) : t.estado === 'PRESENTE' ? (
+                            <span className="badge badge-success">PRESENTE</span>
+                          ) : (
+                            <span className="badge badge-warning">{t.estado}</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
       {/* Modal Configuración */}
       {configOpen && (

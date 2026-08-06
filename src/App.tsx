@@ -61,7 +61,11 @@ export default function App() {
         } />
 
         <Route path="/doctor" element={
-          <ProtectedRoute roles={['DOCTOR']}><DoctorDashboard /></ProtectedRoute>
+          <ProtectedRoute roles={['DOCTOR']}><DoctorDashboard view="principal" /></ProtectedRoute>
+        } />
+
+        <Route path="/doctor/agenda" element={
+          <ProtectedRoute roles={['DOCTOR']}><DoctorDashboard view="agenda" /></ProtectedRoute>
         } />
 
         <Route path="/admin" element={
