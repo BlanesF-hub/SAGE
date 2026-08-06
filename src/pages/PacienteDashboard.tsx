@@ -106,6 +106,58 @@ export default function PacienteDashboard() {
     return new Set<number>(agenda.map((a: any) => Number(a.diaSemana)));
   }, [selectedDoctorId, allDoctores]);
 
+  // Fechas (YYYY-MM-DD) en las que todos los cupos de atención están 100% ocupados
+  const fechasSinCupo = useMemo(() => {
+    if (!selectedDoctorId) return new Set<string>();
+    const doctor = allDoctores.find((d: any) => String(d.id) === String(selectedDoctorId));
+    if (!doctor) return new Set<string>();
+    const agenda = doctor.configuracion?.agenda || [];
+    if (agenda.length === 0) return new Set<string>();
+
+    const turnosDoctor = turnos.filter(
+      (t: any) => String(t.doctorId) === String(selectedDoctorId) && t.estado !== 'CANCELADO'
+    );
+
+    const turnosPorFecha = new Map<string, Set<string>>();
+    turnosDoctor.forEach((t: any) => {
+      if (t.fechaHoraPlanificado) {
+        const fechaIso = t.fechaHoraPlanificado.substring(0, 10);
+        const horaIso = t.fechaHoraPlanificado.substring(11, 16);
+        if (!turnosPorFecha.has(fechaIso)) {
+          turnosPorFecha.set(fechaIso, new Set<string>());
+        }
+        turnosPorFecha.get(fechaIso)!.add(horaIso);
+      }
+    });
+
+    const result = new Set<string>();
+
+    turnosPorFecha.forEach((horasOcupadasSet, fechaIso) => {
+      const fechaObj = new Date(fechaIso + 'T00:00:00');
+      const diaSemana = fechaObj.getDay() === 0 ? 7 : fechaObj.getDay();
+      const bloquesDia = agenda.filter((a: any) => Number(a.diaSemana) === diaSemana);
+      if (bloquesDia.length === 0) return;
+
+      let totalSlotsCount = 0;
+      for (const bloque of bloquesDia) {
+        const [hIni, mIni] = bloque.horaInicio.split(':').map(Number);
+        const [hFin, mFin] = bloque.horaFin.split(':').map(Number);
+        let cur = hIni * 60 + mIni;
+        const end = hFin * 60 + mFin;
+        while (cur + 30 <= end) {
+          totalSlotsCount++;
+          cur += 30;
+        }
+      }
+
+      if (totalSlotsCount > 0 && horasOcupadasSet.size >= totalSlotsCount) {
+        result.add(fechaIso);
+      }
+    });
+
+    return result;
+  }, [selectedDoctorId, allDoctores, turnos]);
+
   // Horarios disponibles: slots de 30 min del médico para la fecha, sin solapamientos
   const horariosDisponibles = useMemo(() => {
     if (!selectedDoctorId || !selectedFecha) return [];
@@ -529,6 +581,7 @@ export default function PacienteDashboard() {
                       <label>4. Seleccioná la fecha</label>
                       <CustomCalendar
                         diasDisponibles={diasQueAtiende}
+                        fechasSinCupo={fechasSinCupo}
                         selectedDate={selectedFecha}
                         onChange={(date) => { setSelectedFecha(date); setSelectedHora(''); }}
                       />

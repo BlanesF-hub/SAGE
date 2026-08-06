@@ -11,6 +11,8 @@ interface Props {
   diasDisponibles?: Set<number>;
   /** Set de fechas (YYYY-MM-DD) que poseen turnos agendados */
   fechasConTurnos?: Set<string>;
+  /** Set de fechas (YYYY-MM-DD) sin cupos de atención disponibles (lleno/bloqueado) */
+  fechasSinCupo?: Set<string>;
   /** Si true, permite seleccionar días pasados */
   allowPastDays?: boolean;
   /** Fecha seleccionada en formato YYYY-MM-DD (para modo día único) */
@@ -31,6 +33,7 @@ const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto'
 export default function CustomCalendar({
   diasDisponibles,
   fechasConTurnos,
+  fechasSinCupo,
   allowPastDays = false,
   selectedDate,
   startDate,
@@ -77,6 +80,9 @@ export default function CustomCalendar({
     const iso = toISO(day);
     const d = new Date(viewYear, viewMonth, day);
     d.setHours(0, 0, 0, 0);
+
+    // Si la fecha está explícitamente sin cupos disponibles (lleno) -> Bloquear selección
+    if (fechasSinCupo && fechasSinCupo.has(iso)) return false;
 
     // Si no se permiten días pasados y la fecha es anterior a hoy
     if (!allowPastDays && d < today) return false;
@@ -202,11 +208,13 @@ export default function CustomCalendar({
         ))}
         {cells.map((day, idx) => {
           if (day === null) return <div key={`e-${idx}`} />;
+          const iso = toISO(day);
+          const isFull = fechasSinCupo?.has(iso);
           const avail = isAvailable(day);
           const sel = isSelected(day);
           const inRange = isInRange(day);
           const tod = isToday(day);
-          const hasTurnos = fechasConTurnos?.has(toISO(day));
+          const hasTurnos = fechasConTurnos?.has(iso);
 
           return (
             <button
@@ -214,9 +222,10 @@ export default function CustomCalendar({
               type="button"
               disabled={!avail}
               onClick={() => avail && handleDayClick(day)}
+              title={isFull ? 'Sin cupos disponibles (lleno)' : undefined}
               className={[
                 'cal-day',
-                avail ? 'cal-day--available' : 'cal-day--disabled',
+                isFull ? 'cal-day--full' : (avail ? 'cal-day--available' : 'cal-day--disabled'),
                 sel ? 'cal-day--selected' : '',
                 inRange ? 'cal-day--in-range' : '',
                 tod && !sel ? 'cal-day--today' : '',
@@ -232,6 +241,9 @@ export default function CustomCalendar({
       <div className="cal-legend">
         <span className="cal-legend-item"><span className="cal-dot cal-dot--available" /> Disponible</span>
         <span className="cal-legend-item"><span className="cal-dot cal-dot--selected" /> Seleccionado</span>
+        {fechasSinCupo && fechasSinCupo.size > 0 && (
+          <span className="cal-legend-item"><span className="cal-dot cal-dot--full" /> Sin Cupo (Lleno)</span>
+        )}
         {onChangeRange && <span className="cal-legend-item"><span className="cal-dot cal-dot--range" /> Rango</span>}
       </div>
     </div>
