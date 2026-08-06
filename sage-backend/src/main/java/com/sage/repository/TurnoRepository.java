@@ -22,4 +22,9 @@ public interface TurnoRepository extends JpaRepository<Turno, Long> {
            "AND t.fechaHoraPlanificado = :fechaHora " +
            "AND t.estado != 'CANCELADO'")
     List<Turno> findActiveTurnosAtSlot(@Param("doctorId") Long doctorId, @Param("fechaHora") LocalDateTime fechaHora);
+
+    @Query("SELECT t FROM Turno t WHERE t.paciente.id = :pacienteId " +
+           "AND t.doctor.especialidad.id = :especialidadId " +
+           "AND t.estado NOT IN ('FINALIZADO', 'CANCELADO', 'AUSENTE')")
+    List<Turno> findPendingTurnosByPacienteAndEspecialidad(@Param("pacienteId") Long pacienteId, @Param("especialidadId") Long especialidadId);
 }

@@ -2,7 +2,8 @@ import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { doctorApi, consultaApi, adminApi, consultorioAdminApi } from '../services/api';
 import type { Consulta, Especialidad } from '../types';
-import { FiUser, FiClock, FiAlertTriangle, FiCheck, FiSettings, FiCalendar, FiFilter } from 'react-icons/fi';
+import { FiUser, FiClock, FiAlertTriangle, FiCheck, FiSettings, FiCalendar, FiFilter, FiX } from 'react-icons/fi';
+import CustomCalendar from '../components/CustomCalendar';
 import toast from 'react-hot-toast';
 
 export default function DoctorDashboard() {
@@ -65,6 +66,26 @@ export default function DoctorDashboard() {
   const turnosHoy = useMemo(() => {
     return turnosDia.filter((t: any) => t.fechaHoraPlanificado?.startsWith(todayStr));
   }, [turnosDia, todayStr]);
+
+  // Días de atención del médico (1=Lun...7=Dom)
+  const diasDisponibles = useMemo(() => {
+    if (!user) return new Set<number>();
+    const doctores = JSON.parse(localStorage.getItem('mock_doctores') || '[]');
+    const me = doctores.find((d: any) => String(d.id) === String(user.id) || d.usuario === user.usuario);
+    const agenda = me?.configuracion?.agenda || [];
+    return new Set<number>(agenda.map((a: any) => Number(a.diaSemana)));
+  }, [user]);
+
+  // Fechas que contienen al menos 1 turno reservado
+  const fechasConTurnos = useMemo(() => {
+    const set = new Set<string>();
+    turnosDia.forEach((t: any) => {
+      if (t.fechaHoraPlanificado) {
+        set.add(t.fechaHoraPlanificado.substring(0, 10));
+      }
+    });
+    return set;
+  }, [turnosDia]);
 
   // Turnos filtrados por el rango seleccionado en "Consultar Agenda"
   const turnosFiltrados = useMemo(() => {
@@ -258,45 +279,70 @@ export default function DoctorDashboard() {
           Si querés ver un lapso, completá también la <strong>Fecha Hasta</strong>.
         </p>
 
-        <div style={{ display: 'flex', gap: '20px', marginBottom: '20px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
-          <div className="input-group" style={{ width: '200px', marginBottom: 0 }}>
-            <label htmlFor="doc-fecha-desde">Fecha Desde <span style={{ color: '#f87171' }}>*</span></label>
-            <input
-              id="doc-fecha-desde"
-              type="date"
-              className="input-field"
-              value={filterFechaDesde}
-              onChange={(e) => {
-                setFilterFechaDesde(e.target.value);
-                // Si "hasta" es anterior a "desde", limpiar "hasta"
-                if (filterFechaHasta && e.target.value > filterFechaHasta) {
-                  setFilterFechaHasta('');
-                }
+        <div style={{ display: 'flex', gap: '24px', marginBottom: '20px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
+          {/* Calendario DESDE */}
+          <div style={{ flex: '1 1 300px', maxWidth: '420px' }}>
+            <label style={{ fontSize: '0.85rem', color: '#34d399', fontWeight: 600, marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <FiCalendar /> Fecha Desde <span style={{ color: '#f87171' }}>*</span>
+            </label>
+            <CustomCalendar
+              diasDisponibles={diasDisponibles}
+              fechasConTurnos={fechasConTurnos}
+              allowPastDays={true}
+              selectedDate={filterFechaDesde}
+              onChange={(d) => {
+                setFilterFechaDesde(d);
+                if (filterFechaHasta && d > filterFechaHasta) setFilterFechaHasta('');
               }}
             />
+            {filterFechaDesde && (
+              <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span className="badge badge-primary" style={{ fontSize: '0.82rem' }}>
+                  Desde: {filterFechaDesde}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => { setFilterFechaDesde(''); setFilterFechaHasta(''); }}
+                  style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                  title="Limpiar"
+                >
+                  <FiX />
+                </button>
+              </div>
+            )}
           </div>
-          <div className="input-group" style={{ width: '200px', marginBottom: 0 }}>
-            <label htmlFor="doc-fecha-hasta">Fecha Hasta <span style={{ color: 'var(--text-secondary)', fontWeight: 400 }}>(opcional)</span></label>
-            <input
-              id="doc-fecha-hasta"
-              type="date"
-              className="input-field"
-              value={filterFechaHasta}
-              min={filterFechaDesde || undefined}
-              onChange={(e) => setFilterFechaHasta(e.target.value)}
-              disabled={!filterFechaDesde}
+
+          {/* Calendario HASTA */}
+          <div style={{ flex: '1 1 300px', maxWidth: '420px', opacity: filterFechaDesde ? 1 : 0.4, pointerEvents: filterFechaDesde ? 'auto' : 'none', transition: 'opacity 0.3s' }}>
+            <label style={{ fontSize: '0.85rem', color: '#a5b4fc', fontWeight: 600, marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <FiCalendar /> Fecha Hasta <span style={{ color: 'var(--text-secondary)', fontWeight: 400 }}>(opcional)</span>
+            </label>
+            <CustomCalendar
+              diasDisponibles={diasDisponibles}
+              fechasConTurnos={fechasConTurnos}
+              allowPastDays={true}
+              selectedDate={filterFechaHasta}
+              onChange={(d) => {
+                if (d >= filterFechaDesde) setFilterFechaHasta(d);
+                else toast.error('La fecha "Hasta" debe ser posterior a "Desde".');
+              }}
             />
+            {filterFechaHasta && (
+              <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span className="badge badge-accent" style={{ fontSize: '0.82rem' }}>
+                  Hasta: {filterFechaHasta}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setFilterFechaHasta('')}
+                  style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                  title="Limpiar"
+                >
+                  <FiX />
+                </button>
+              </div>
+            )}
           </div>
-          {(filterFechaDesde || filterFechaHasta) && (
-            <button
-              type="button"
-              className="btn btn-secondary btn-sm"
-              onClick={() => { setFilterFechaDesde(''); setFilterFechaHasta(''); }}
-              style={{ height: '38px' }}
-            >
-              Limpiar filtro
-            </button>
-          )}
         </div>
 
         {!filterFechaDesde ? (
