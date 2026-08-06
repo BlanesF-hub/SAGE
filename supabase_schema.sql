@@ -104,7 +104,7 @@ CREATE TABLE IF NOT EXISTS turnos (
 );
 
 -- ============================================================
--- Deshabilitar RLS (Row Level Security) para demo
+-- Deshabilitar RLS o Permitir Acceso Público (Demo)
 -- ============================================================
 ALTER TABLE consultorios DISABLE ROW LEVEL SECURITY;
 ALTER TABLE especialidades DISABLE ROW LEVEL SECURITY;
@@ -114,6 +114,31 @@ ALTER TABLE doctores DISABLE ROW LEVEL SECURITY;
 ALTER TABLE secretarios DISABLE ROW LEVEL SECURITY;
 ALTER TABLE pacientes DISABLE ROW LEVEL SECURITY;
 ALTER TABLE turnos DISABLE ROW LEVEL SECURITY;
+
+-- Políticas de permiso total para cliente (anon / public)
+DROP POLICY IF EXISTS "Allow public all consultorios" ON consultorios;
+CREATE POLICY "Allow public all consultorios" ON consultorios FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Allow public all especialidades" ON especialidades;
+CREATE POLICY "Allow public all especialidades" ON especialidades FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Allow public all salas" ON salas;
+CREATE POLICY "Allow public all salas" ON salas FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Allow public all admins_consultorio" ON admins_consultorio;
+CREATE POLICY "Allow public all admins_consultorio" ON admins_consultorio FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Allow public all doctores" ON doctores;
+CREATE POLICY "Allow public all doctores" ON doctores FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Allow public all secretarios" ON secretarios;
+CREATE POLICY "Allow public all secretarios" ON secretarios FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Allow public all pacientes" ON pacientes;
+CREATE POLICY "Allow public all pacientes" ON pacientes FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Allow public all turnos" ON turnos;
+CREATE POLICY "Allow public all turnos" ON turnos FOR ALL USING (true) WITH CHECK (true);
 
 -- ============================================================
 -- Datos Semilla (Seed) — Usuarios de Demo
