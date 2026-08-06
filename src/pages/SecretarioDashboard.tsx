@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { adminApi, doctorApi, turnoApi, consultaApi, consultorioAdminApi } from '../services/api';
+import { adminApi, doctorApi, turnoApi, consultaApi, consultorioAdminApi, turnoSupabaseApi } from '../services/api';
 import type { Turno, Doctor, Consultorio, Paciente } from '../types';
 import { FiCalendar, FiPlus, FiClock, FiCheck, FiAlertTriangle, FiUser, FiNavigation, FiFilter } from 'react-icons/fi';
 import CustomCalendar from '../components/CustomCalendar';
@@ -8,8 +8,8 @@ import toast from 'react-hot-toast';
 
 export default function SecretarioDashboard() {
   const { user } = useAuth();
-  const [turnos, setTurnos] = useState<Turno[]>([]);
-  const [doctores, setDoctores] = useState<Doctor[]>([]);
+  const [turnos, setTurnos] = useState<any[]>([]);
+  const [doctores, setDoctores] = useState<any[]>([]);
   const [selectedDoctor, setSelectedDoctor] = useState('');
   const todayStr = new Date().toISOString().split('T')[0];
   const [startDate, setStartDate] = useState(todayStr);
@@ -48,38 +48,29 @@ export default function SecretarioDashboard() {
   const fetchTurnos = async () => {
     setLoading(true);
     try {
-      const allTurnos = JSON.parse(localStorage.getItem('mock_turnos_paciente') || '[]');
-      const allPacientes = JSON.parse(localStorage.getItem('mock_pacientes') || '[]');
-      
-      let filtered = allTurnos;
+      // Obtener turnos del consultorio del secretario
+      const currentUser = JSON.parse(localStorage.getItem('sage_user') || '{}');
+      const consultorioId = currentUser?.consultorioId;
+
+      let allTurnos = consultorioId
+        ? await turnoSupabaseApi.getTurnosByConsultorio(consultorioId)
+        : await turnoSupabaseApi.getDoctoresTodos().then(() => [] as any[]);
+
+      // Si hay filtro de doctor
       if (selectedDoctor) {
-        filtered = filtered.filter((t: any) => String(t.doctorId) === String(selectedDoctor));
+        allTurnos = allTurnos.filter((t: any) => String(t.doctorId) === String(selectedDoctor));
       }
 
-      filtered = filtered.filter((t: any) => {
+      // Filtro por rango de fechas
+      allTurnos = allTurnos.filter((t: any) => {
         const f = t.fechaHoraPlanificado?.substring(0, 10);
         return f >= startDate && f <= endDate;
       });
 
-      const enriched = filtered.map((t: any) => {
-        const pac = allPacientes.find((p: any) => p.id === t.pacienteId || String(p.usuario) === String(t.pacienteId));
-        let edad = pac?.edad;
-        if (edad === undefined && pac?.fechaNacimiento) {
-          edad = new Date().getFullYear() - new Date(pac.fechaNacimiento).getFullYear();
-        }
-        return {
-          ...t,
-          pacienteNombre: pac?.nombrePaciente || t.doctor?.nombrePaciente || 'Paciente',
-          pacienteDni: pac?.dniPaciente || '-',
-          pacienteTel: pac?.nroTelefonoPaciente || pac?.nroTelefono || '-',
-          pacienteEdad: edad !== undefined ? `${edad} años` : '-',
-        };
-      });
-
-      setTurnos(enriched);
-      setLoading(false);
-    } catch {
+      setTurnos(allTurnos);
+    } catch (err) {
       toast.error('Error al cargar turnos');
+    } finally {
       setLoading(false);
     }
   };

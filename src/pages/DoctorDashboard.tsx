@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { doctorApi, consultaApi, adminApi, consultorioAdminApi } from '../services/api';
+import { doctorApi, consultaApi, adminApi, consultorioAdminApi, turnoSupabaseApi } from '../services/api';
 import type { Consulta, Especialidad } from '../types';
 import { FiUser, FiClock, FiAlertTriangle, FiCheck, FiSettings, FiCalendar, FiFilter, FiX } from 'react-icons/fi';
 import CustomCalendar from '../components/CustomCalendar';
@@ -50,26 +50,29 @@ export default function DoctorDashboard({ view = 'principal' }: DoctorDashboardP
     fetchTurnosDia();
   }, [user]);
 
-  const fetchTurnosDia = () => {
+  const fetchTurnosDia = async () => {
     if (!user) return;
-    const allTurnos = JSON.parse(localStorage.getItem('mock_turnos_paciente') || '[]');
-    const allPacientes = JSON.parse(localStorage.getItem('mock_pacientes') || '[]');
-    const myTurnos = allTurnos.filter((t: any) => String(t.doctorId) === String(user.id));
-    const enriched = myTurnos.map((t: any) => {
-      const pac = allPacientes.find((p: any) => p.id === t.pacienteId || String(p.usuario) === String(t.pacienteId));
-      let edad = pac?.edad;
-      if (edad === undefined && pac?.fechaNacimiento) {
-        edad = new Date().getFullYear() - new Date(pac.fechaNacimiento).getFullYear();
-      }
-      return {
-        ...t,
-        pacienteNombre: pac?.nombrePaciente || 'Paciente',
-        pacienteDni: pac?.dniPaciente || '-',
-        pacienteTel: pac?.nroTelefonoPaciente || pac?.nroTelefono || '-',
-        pacienteEdad: edad !== undefined ? `${edad} años` : '-',
-      };
-    });
-    setTurnosDia(enriched);
+    try {
+      const allTurnos = await turnoSupabaseApi.getTurnosByDoctor(user.id);
+      const allPacientes = await turnoSupabaseApi.getPacienteTodos();
+      const enriched = allTurnos.map((t: any) => {
+        const pac = allPacientes.find((p: any) => p.id === t.pacienteId);
+        let edad = pac?.edad;
+        if (edad === undefined && pac?.fechaNacimiento) {
+          edad = new Date().getFullYear() - new Date(pac.fechaNacimiento).getFullYear();
+        }
+        return {
+          ...t,
+          pacienteNombre: t.pacienteNombre || pac?.nombrePaciente || 'Paciente',
+          pacienteDni: t.pacienteDni || pac?.dniPaciente || '-',
+          pacienteTel: pac?.nroTelefono || '-',
+          pacienteEdad: t.pacienteEdad || (edad !== undefined ? `${edad} años` : '-'),
+        };
+      });
+      setTurnosDia(enriched);
+    } catch {
+      console.error('Error loading turnos');
+    }
   };
 
   // Turnos de HOY
@@ -80,8 +83,10 @@ export default function DoctorDashboard({ view = 'principal' }: DoctorDashboardP
   // Días de atención del médico (1=Lun...7=Dom)
   const diasDisponibles = useMemo(() => {
     if (!user) return new Set<number>();
-    const doctores = JSON.parse(localStorage.getItem('mock_doctores') || '[]');
-    const me = doctores.find((d: any) => String(d.id) === String(user.id) || d.usuario === user.usuario);
+    // Usar los datos ya cargados del doctor desde Supabase (via turnosDia)
+    // O leer de localStorage como fallback
+    const doctoresLocal = JSON.parse(localStorage.getItem('mock_doctores') || '[]');
+    const me = doctoresLocal.find((d: any) => String(d.id) === String(user.id) || d.usuario === user.usuario);
     const agenda = me?.configuracion?.agenda || [];
     return new Set<number>(agenda.map((a: any) => Number(a.diaSemana)));
   }, [user]);

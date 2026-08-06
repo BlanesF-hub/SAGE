@@ -1,13 +1,10 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { adminApi } from '../services/api';
+import { adminApi, turnoSupabaseApi } from '../services/api';
 import type { Consultorio } from '../types';
 import { FiCalendar, FiPlus, FiClock } from 'react-icons/fi';
 import CustomCalendar from '../components/CustomCalendar';
 import toast from 'react-hot-toast';
-
-// Helpers para leer desde el localStorage mock
-const getLocal = <T,>(key: string): T[] => JSON.parse(localStorage.getItem(key) || '[]');
 
 export default function PacienteDashboard() {
   const { user } = useAuth();
@@ -25,15 +22,28 @@ export default function PacienteDashboard() {
   const [selectedHora, setSelectedHora] = useState('');
   const [descripcion, setDescripcion] = useState('');
 
+  const [allDoctoresState, setAllDoctoresState] = useState<any[]>([]);
+
   useEffect(() => {
-    fetchConsultorios();
-    // Cargar turnos mock del paciente
-    const mockTurnos = getLocal<any>('mock_turnos_paciente').filter(
-      (t: any) => t.pacienteId === user?.id
-    );
-    setTurnos(mockTurnos);
-    setLoading(false);
-  }, []);
+    fetchInitialData();
+  }, [user]);
+
+  const fetchInitialData = async () => {
+    try {
+      const [cons, docs, misTurnos] = await Promise.all([
+        adminApi.getConsultorios(),
+        turnoSupabaseApi.getDoctoresTodos(),
+        user?.id ? turnoSupabaseApi.getTurnosByPaciente(user.id) : Promise.resolve([]),
+      ]);
+      setConsultorios(cons);
+      setAllDoctoresState(docs);
+      setTurnos(misTurnos);
+    } catch (err) {
+      toast.error('Error al cargar datos');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const fetchConsultorios = async () => {
     try {
@@ -44,32 +54,27 @@ export default function PacienteDashboard() {
     }
   };
 
-  // Todos los doctores del localStorage
-  const allDoctores = useMemo(() => getLocal<any>('mock_doctores'), [modalOpen]);
+  // Todos los doctores (Supabase)
+  const allDoctores = useMemo(() => allDoctoresState, [allDoctoresState, modalOpen]);
 
-  // Doctores del consultorio seleccionado (tienen agenda asignada con salaId en ese consultorio)
+  // Doctores del consultorio seleccionado
   const doctoresDelConsultorio = useMemo(() => {
     if (!selectedConsultorioId) return [];
-    // Las salas pertenecen a un consultorio
-    const salas = getLocal<any>('mock_salas').filter(
-      (s: any) => String(s.consultorioId) === String(selectedConsultorioId)
-    );
-    const salaIds = salas.map((s: any) => s.id);
-    // Un médico pertenece al consultorio si tiene agenda en alguna de sus salas
-    return allDoctores.filter((d: any) => {
-      const agenda = d.configuracion?.agenda || [];
-      return agenda.some((a: any) => salaIds.includes(Number(a.salaId)));
-    });
+    // Filtrar doctores por consultorioId
+    return allDoctores.filter((d: any) => String(d.consultorioId) === String(selectedConsultorioId));
   }, [selectedConsultorioId, allDoctores]);
 
   // Helper para resolver el nombre legible de una especialidad a partir de su código o ID
   const resolveEspecialidadNombre = (codOrName: string) => {
     if (!codOrName) return '-';
-    const mockEsp = getLocal<any>('mock_especialidades');
-    const found = mockEsp.find(
-      (e: any) => String(e.codEspecialidad) === String(codOrName) || String(e.id) === String(codOrName)
-    );
-    return found?.nombreEspecialidad || codOrName;
+    // Buscar entre las especialidades conocidas (hardcoded como fallback)
+    const espMap: Record<string, string> = {
+      'CARDIO': 'Cardiología',
+      'PEDIATRIA': 'Pediatría',
+      'CLINICA': 'Clínica General',
+      'TRAUMA': 'Traumatología',
+    };
+    return espMap[codOrName] || codOrName;
   };
 
   // Especialidades únicas de los médicos del consultorio (con nombre legible)
@@ -113,13 +118,12 @@ export default function PacienteDashboard() {
     if (turnosDia.length === 0) return [];
 
     // Turnos ya reservados en esta fecha (médico u ocupados por el mismo paciente)
-    const mockTurnos = getLocal<any>('mock_turnos_paciente');
-    const turnosDoctorExistentes = mockTurnos.filter(
+    const turnosDoctorExistentes = turnos.filter(
       (t: any) => String(t.doctorId) === String(selectedDoctorId) &&
                   t.estado !== 'CANCELADO' &&
                   t.fechaHoraPlanificado?.startsWith(selectedFecha)
     );
-    const turnosPacienteExistentes = mockTurnos.filter(
+    const turnosPacienteExistentes = turnos.filter(
       (t: any) => t.pacienteId === user?.id &&
                   t.estado !== 'CANCELADO' &&
                   t.fechaHoraPlanificado?.startsWith(selectedFecha)
@@ -179,14 +183,6 @@ export default function PacienteDashboard() {
     let edadPaciente: number | undefined = (user as any)?.edad;
     if (edadPaciente === undefined && (user as any)?.fechaNacimiento) {
       edadPaciente = new Date().getFullYear() - new Date((user as any).fechaNacimiento).getFullYear();
-    }
-    if (edadPaciente === undefined) {
-      const storedPacientes = getLocal<any>('mock_pacientes');
-      const p = storedPacientes.find((item: any) => String(item.id) === String(user?.id) || item.usuario === user?.usuario);
-      if (p) {
-        if (p.edad !== undefined && p.edad !== null && p.edad !== '') edadPaciente = Number(p.edad);
-        else if (p.fechaNacimiento) edadPaciente = new Date().getFullYear() - new Date(p.fechaNacimiento).getFullYear();
-      }
     }
 
     const docConfig = doctor?.configuracion || {};
@@ -252,12 +248,8 @@ export default function PacienteDashboard() {
         edadPaciente = new Date().getFullYear() - new Date((user as any).fechaNacimiento).getFullYear();
       }
       if (edadPaciente === undefined) {
-        const storedPacientes = getLocal<any>('mock_pacientes');
-        const p = storedPacientes.find((item: any) => String(item.id) === String(user.id) || item.usuario === user.usuario);
-        if (p) {
-          if (p.edad !== undefined && p.edad !== null && p.edad !== '') edadPaciente = Number(p.edad);
-          else if (p.fechaNacimiento) edadPaciente = new Date().getFullYear() - new Date(p.fechaNacimiento).getFullYear();
-        }
+        // La edad ya viene del user (desde Supabase al hacer login)
+        edadPaciente = undefined; // No hay información de edad disponible
       }
 
       const docConfig = doctor?.configuracion || {};
@@ -278,7 +270,8 @@ export default function PacienteDashboard() {
         return;
       }
 
-      const storedTurnos = getLocal<any>('mock_turnos_paciente').filter(
+      // Obtenemos los turnos del estado (ya cargados desde Supabase)
+      const storedTurnos = turnos.filter(
         (t: any) => t.pacienteId === user.id && t.estado !== 'CANCELADO'
       );
 
@@ -316,25 +309,25 @@ export default function PacienteDashboard() {
         return;
       }
 
-      const nuevoTurno: any = {
-        id: Date.now(),
+      // Obtener datos del paciente para guardar en el turno
+      const pacientes = await turnoSupabaseApi.getPacienteTodos();
+      const paciente = pacientes.find((p: any) => p.id === user.id || p.usuario === user.usuario);
+
+      const nuevoTurno = await turnoSupabaseApi.crearTurno({
         pacienteId: user.id,
         doctorId: Number(selectedDoctorId),
-        doctor: {
-          id: Number(selectedDoctorId),
-          nombreEmpleado: doctor?.nombreEmpleado || 'Dr.',
-          especialidad: { codEspecialidad: selectedEspecialidad, nombreEspecialidad: espNombre },
-        },
-        consultorio: { nombreConsultorio: consultorio?.nombreConsultorio || '' },
+        pacienteNombre: paciente?.nombrePaciente || user.nombre || 'Paciente',
+        pacienteDni: paciente?.dniPaciente || '',
+        pacienteEdad: paciente?.edad,
+        doctorNombre: doctor?.nombreEmpleado || 'Dr.',
+        especialidadCod: selectedEspecialidad,
+        especialidadNombre: espNombre,
+        consultorioNombre: consultorio?.nombreConsultorio || '',
+        consultorioId: Number(selectedConsultorioId),
         fechaHoraPlanificado: `${selectedFecha}T${selectedHora}:00`,
-        estado: 'PENDIENTE',
-        confirmado: false,
         descripcion,
-      };
-      // Guardar en mock
-      const stored = getLocal<any>('mock_turnos_paciente');
-      stored.push(nuevoTurno);
-      localStorage.setItem('mock_turnos_paciente', JSON.stringify(stored));
+      });
+
       setTurnos((prev) => [nuevoTurno, ...prev]);
       toast.success('¡Turno solicitado exitosamente!');
       setModalOpen(false);
@@ -346,9 +339,8 @@ export default function PacienteDashboard() {
     }
   };
 
-  const handleCancelarTurno = (turno: any) => {
-    const allDoctores = getLocal<any>('mock_doctores');
-    const doc = allDoctores.find((d: any) => d.id === turno.doctorId);
+  const handleCancelarTurno = async (turno: any) => {
+    const doc = allDoctoresState.find((d: any) => d.id === turno.doctorId);
     const fechaTurnoStr = turno.fechaHoraPlanificado.substring(0, 10);
     const fechaDate = new Date(fechaTurnoStr + 'T00:00:00');
     const diaSemana = fechaDate.getDay() === 0 ? 7 : fechaDate.getDay();
@@ -365,25 +357,20 @@ export default function PacienteDashboard() {
     const limite8hsMs = jornadaInicioMs - 8 * 60 * 60 * 1000;
     const ahoraMs = Date.now();
 
-    const storedTurnos = getLocal<any>('mock_turnos_paciente');
-    const idx = storedTurnos.findIndex((t: any) => t.id === turno.id);
-
-    if (ahoraMs < limite8hsMs) {
-      if (idx !== -1) {
-        storedTurnos.splice(idx, 1);
-        localStorage.setItem('mock_turnos_paciente', JSON.stringify(storedTurnos));
+    try {
+      if (ahoraMs < limite8hsMs) {
+        await turnoSupabaseApi.actualizarEstadoTurno(turno.id, 'CANCELADO');
+        setTurnos((prev) => prev.filter((t: any) => t.id !== turno.id));
+        toast.success('Turno cancelado a tiempo. El horario quedó libre.');
+      } else {
+        await turnoSupabaseApi.actualizarEstadoTurno(turno.id, 'CANCELADO');
+        setTurnos((prev) =>
+          prev.map((t: any) => (t.id === turno.id ? { ...t, estado: 'CANCELADO' } : t))
+        );
+        toast.error('Turno cancelado dentro de las 8hs previas. Quedó marcado como CANCELADO (Sobreturno).');
       }
-      setTurnos((prev) => prev.filter((t: any) => t.id !== turno.id));
-      toast.success('Turno cancelado a tiempo. El horario quedó libre.');
-    } else {
-      if (idx !== -1) {
-        storedTurnos[idx].estado = 'CANCELADO';
-        localStorage.setItem('mock_turnos_paciente', JSON.stringify(storedTurnos));
-      }
-      setTurnos((prev) =>
-        prev.map((t: any) => (t.id === turno.id ? { ...t, estado: 'CANCELADO' } : t))
-      );
-      toast.error('Turno cancelado dentro de las 8hs previas. Quedó marcado como CANCELADO (Sobreturno).');
+    } catch {
+      toast.error('Error al cancelar el turno.');
     }
   };
 
