@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { adminApi, doctorApi, turnoApi, consultaApi } from '../services/api';
+import { adminApi, doctorApi, turnoApi, consultaApi, consultorioAdminApi } from '../services/api';
 import type { Turno, Doctor, Consultorio, Paciente } from '../types';
 import { FiCalendar, FiPlus, FiClock, FiCheck, FiAlertTriangle, FiUser, FiNavigation } from 'react-icons/fi';
 import toast from 'react-hot-toast';
@@ -34,9 +34,8 @@ export default function SecretarioDashboard() {
   }, [selectedDoctor, fecha]);
 
   const fetchDoctores = async () => {
-    if (!user?.consultorioId) return;
     try {
-      const data = await doctorApi.listarPorConsultorio(user.consultorioId);
+      const data = await consultorioAdminApi.getDoctores();
       setDoctores(data);
     } catch {
       toast.error('Error al cargar doctores');
@@ -46,8 +45,25 @@ export default function SecretarioDashboard() {
   const fetchTurnos = async () => {
     setLoading(true);
     try {
-      // Fetch today's turnos for secretary dashboard
-      // In production, this would query api.get(`/api/turnos/consultorio?doctor=${selectedDoctor}&fecha=${fecha}`)
+      const allTurnos = JSON.parse(localStorage.getItem('mock_turnos_paciente') || '[]');
+      const allPacientes = JSON.parse(localStorage.getItem('mock_pacientes') || '[]');
+      
+      let filtered = allTurnos.filter((t: any) => t.fechaHoraPlanificado?.startsWith(fecha));
+      if (selectedDoctor) {
+        filtered = filtered.filter((t: any) => String(t.doctorId) === String(selectedDoctor));
+      }
+
+      const enriched = filtered.map((t: any) => {
+        const pac = allPacientes.find((p: any) => p.id === t.pacienteId);
+        return {
+          ...t,
+          pacienteNombre: pac?.nombrePaciente || t.doctor?.nombrePaciente || 'Paciente',
+          pacienteDni: pac?.dniPaciente || '-',
+          pacienteTel: pac?.nroTelefonoPaciente || pac?.nroTelefono || '-',
+        };
+      });
+
+      setTurnos(enriched);
       setLoading(false);
     } catch {
       toast.error('Error al cargar turnos');
@@ -55,13 +71,15 @@ export default function SecretarioDashboard() {
     }
   };
 
-  const handleMarcarPresente = async (turnoId: number) => {
-    try {
-      await turnoApi.marcarPresente(turnoId);
-      toast.success('Paciente marcado como PRESENTE. Consulta iniciada en sala de espera.');
+  const handleMarcarPresente = (turnoId: number) => {
+    const allTurnos = JSON.parse(localStorage.getItem('mock_turnos_paciente') || '[]');
+    const idx = allTurnos.findIndex((t: any) => t.id === turnoId);
+    if (idx !== -1) {
+      allTurnos[idx].estado = 'PRESENTE';
+      allTurnos[idx].confirmado = true;
+      localStorage.setItem('mock_turnos_paciente', JSON.stringify(allTurnos));
+      toast.success('Paciente marcado como PRESENTE. Notificado al médico.');
       fetchTurnos();
-    } catch (err: any) {
-      toast.error(err.response?.data || 'Error al registrar presencia');
     }
   };
 
@@ -164,44 +182,41 @@ export default function SecretarioDashboard() {
                 <tr>
                   <th>Hora</th>
                   <th>Paciente</th>
+                  <th>DNI</th>
+                  <th>Teléfono</th>
                   <th>Médico</th>
-                  <th>Tipo</th>
+                  <th>Motivo</th>
                   <th>Estado</th>
                   <th>Acciones</th>
                 </tr>
               </thead>
               <tbody>
-                {turnos.map((turno) => (
+                {turnos.map((turno: any) => (
                   <tr key={turno.id}>
                     <td>{new Date(turno.fechaHoraPlanificado).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}</td>
-                    <td>{turno.paciente?.nombrePaciente || 'S/N'}</td>
-                    <td>{turno.doctor.nombreEmpleado}</td>
+                    <td>{turno.pacienteNombre}</td>
+                    <td>{turno.pacienteDni}</td>
+                    <td>{turno.pacienteTel}</td>
+                    <td>{turno.doctor?.nombreEmpleado || 'Dr.'}</td>
+                    <td>{turno.descripcion || 'Sin motivo'}</td>
                     <td>
-                      <span className={`badge badge-${turno.tipoTurno.codTipoTurno === 'URGENCIA' ? 'danger' : 'primary'}`}>
-                        {turno.tipoTurno.nombreTipoTurno}
-                      </span>
+                      {turno.estado === 'CANCELADO' ? (
+                        <span className="badge badge-danger">CANCELADO (Sobreturno)</span>
+                      ) : turno.estado === 'PRESENTE' ? (
+                        <span className="badge badge-success">PRESENTE</span>
+                      ) : (
+                        <span className="badge badge-warning">{turno.estado}</span>
+                      )}
                     </td>
-                    <td>{turno.estado}</td>
                     <td>
                       <div style={{ display: 'flex', gap: '8px' }}>
-                        {turno.estado === 'CONFIRMADO' && (
+                        {turno.estado !== 'PRESENTE' && turno.estado !== 'CANCELADO' && (
                           <button
                             className="btn btn-success btn-sm"
                             onClick={() => handleMarcarPresente(turno.id)}
                             title="Marcar presente"
                           >
-                            <FiCheck /> Check-in
-                          </button>
-                        )}
-                        {(turno.estado === 'ASIGNADO' || turno.estado === 'REASIGNADO' || turno.estado === 'CONFIRMADO') && (
-                          <button
-                            className="btn btn-secondary btn-sm"
-                            onClick={() => {
-                              setSelectedTurno(turno);
-                              setReasignarOpen(true);
-                            }}
-                          >
-                            Reasignar
+                            <FiCheck /> Marcar Presente
                           </button>
                         )}
                       </div>

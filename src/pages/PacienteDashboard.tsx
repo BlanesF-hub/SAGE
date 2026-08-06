@@ -234,6 +234,47 @@ export default function PacienteDashboard() {
     }
   };
 
+  const handleCancelarTurno = (turno: any) => {
+    const allDoctores = getLocal<any>('mock_doctores');
+    const doc = allDoctores.find((d: any) => d.id === turno.doctorId);
+    const fechaTurnoStr = turno.fechaHoraPlanificado.substring(0, 10);
+    const fechaDate = new Date(fechaTurnoStr + 'T00:00:00');
+    const diaSemana = fechaDate.getDay() === 0 ? 7 : fechaDate.getDay();
+
+    const agendaDoc = doc?.configuracion?.agenda || [];
+    const bloquesDia = agendaDoc.filter((a: any) => Number(a.diaSemana) === diaSemana);
+    let horaInicioJornada = '08:00';
+    if (bloquesDia.length > 0) {
+      bloquesDia.sort((a: any, b: any) => a.horaInicio.localeCompare(b.horaInicio));
+      horaInicioJornada = bloquesDia[0].horaInicio;
+    }
+
+    const jornadaInicioMs = new Date(`${fechaTurnoStr}T${horaInicioJornada}:00`).getTime();
+    const limite8hsMs = jornadaInicioMs - 8 * 60 * 60 * 1000;
+    const ahoraMs = Date.now();
+
+    const storedTurnos = getLocal<any>('mock_turnos_paciente');
+    const idx = storedTurnos.findIndex((t: any) => t.id === turno.id);
+
+    if (ahoraMs < limite8hsMs) {
+      if (idx !== -1) {
+        storedTurnos.splice(idx, 1);
+        localStorage.setItem('mock_turnos_paciente', JSON.stringify(storedTurnos));
+      }
+      setTurnos((prev) => prev.filter((t: any) => t.id !== turno.id));
+      toast.success('Turno cancelado a tiempo. El horario quedó libre.');
+    } else {
+      if (idx !== -1) {
+        storedTurnos[idx].estado = 'CANCELADO';
+        localStorage.setItem('mock_turnos_paciente', JSON.stringify(storedTurnos));
+      }
+      setTurnos((prev) =>
+        prev.map((t: any) => (t.id === turno.id ? { ...t, estado: 'CANCELADO' } : t))
+      );
+      toast.error('Turno cancelado dentro de las 8hs previas. Quedó marcado como CANCELADO (Sobreturno).');
+    }
+  };
+
   return (
     <div className="page-container animate-fade-in">
       <div className="page-header">
@@ -265,6 +306,7 @@ export default function PacienteDashboard() {
                   <th>Especialidad</th>
                   <th>Consultorio</th>
                   <th>Estado</th>
+                  <th>Acciones</th>
                 </tr>
               </thead>
               <tbody>
@@ -283,9 +325,20 @@ export default function PacienteDashboard() {
                     <td>{resolveEspecialidadNombre(turno.doctor?.especialidad?.nombreEspecialidad || turno.doctor?.especialidad?.codEspecialidad)}</td>
                     <td>{turno.consultorio?.nombreConsultorio}</td>
                     <td>
-                      <span className={`badge badge-${turno.estado === 'CONFIRMADO' ? 'success' : turno.estado === 'PENDIENTE' ? 'warning' : 'primary'}`}>
+                      <span className={`badge badge-${turno.estado === 'CONFIRMADO' || turno.estado === 'PRESENTE' ? 'success' : turno.estado === 'PENDIENTE' ? 'warning' : 'primary'}`}>
                         {turno.estado}
                       </span>
+                    </td>
+                    <td>
+                      {turno.estado !== 'CANCELADO' && (
+                        <button
+                          className="btn btn-sm btn-secondary"
+                          style={{ color: '#ef4444', borderColor: 'rgba(239,68,68,0.3)' }}
+                          onClick={() => handleCancelarTurno(turno)}
+                        >
+                          Cancelar
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}

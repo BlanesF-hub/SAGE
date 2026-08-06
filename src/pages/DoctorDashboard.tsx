@@ -10,6 +10,7 @@ export default function DoctorDashboard() {
   const [consultas, setConsultas] = useState<Consulta[]>([]);
   const [especialidades, setEspecialidades] = useState<Especialidad[]>([]);
   const [salas, setSalas] = useState<any[]>([]);
+  const [turnosDia, setTurnosDia] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Modales
@@ -35,7 +36,25 @@ export default function DoctorDashboard() {
     fetchConsultas();
     fetchEspecialidades();
     fetchSalas();
-  }, []);
+    fetchTurnosDia();
+  }, [user]);
+
+  const fetchTurnosDia = () => {
+    if (!user) return;
+    const allTurnos = JSON.parse(localStorage.getItem('mock_turnos_paciente') || '[]');
+    const allPacientes = JSON.parse(localStorage.getItem('mock_pacientes') || '[]');
+    const myTurnos = allTurnos.filter((t: any) => String(t.doctorId) === String(user.id));
+    const enriched = myTurnos.map((t: any) => {
+      const pac = allPacientes.find((p: any) => p.id === t.pacienteId);
+      return {
+        ...t,
+        pacienteNombre: pac?.nombrePaciente || 'Paciente',
+        pacienteDni: pac?.dniPaciente || '-',
+        pacienteTel: pac?.nroTelefonoPaciente || pac?.nroTelefono || '-',
+      };
+    });
+    setTurnosDia(enriched);
+  };
 
   const fetchSalas = async () => {
     try {
@@ -152,6 +171,58 @@ export default function DoctorDashboard() {
         }}>
           <FiSettings /> Configurar Cuenta
         </button>
+      </div>
+
+      {/* Sección Turnos del Médico */}
+      <div className="card" style={{ marginBottom: '24px' }}>
+        <h3 style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <FiClock style={{ color: 'var(--primary-color)' }} /> Mis Turnos Programados
+        </h3>
+        {turnosDia.length === 0 ? (
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>No tenés turnos agendados por pacientes aún.</p>
+        ) : (
+          <div className="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Fecha y Hora</th>
+                  <th>Paciente</th>
+                  <th>DNI</th>
+                  <th>Teléfono</th>
+                  <th>Motivo de Consulta</th>
+                  <th>Estado</th>
+                </tr>
+              </thead>
+              <tbody>
+                {turnosDia.map((t: any) => (
+                  <tr key={t.id}>
+                    <td>
+                      <strong>
+                        {new Date(t.fechaHoraPlanificado).toLocaleString('es-AR', {
+                          dateStyle: 'short',
+                          timeStyle: 'short',
+                        })}
+                      </strong>
+                    </td>
+                    <td>{t.pacienteNombre}</td>
+                    <td>{t.pacienteDni}</td>
+                    <td>{t.pacienteTel}</td>
+                    <td>{t.descripcion || 'Sin motivo especificado'}</td>
+                    <td>
+                      {t.estado === 'CANCELADO' ? (
+                        <span className="badge badge-danger">CANCELADO — Sobreturno disponible</span>
+                      ) : t.estado === 'PRESENTE' ? (
+                        <span className="badge badge-success">PRESENTE</span>
+                      ) : (
+                        <span className="badge badge-warning">{t.estado}</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       <div className="card">
