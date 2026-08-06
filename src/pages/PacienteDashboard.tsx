@@ -184,14 +184,20 @@ export default function PacienteDashboard() {
       const edadMin = doctor?.edadMinima !== undefined && doctor?.edadMinima !== null && doctor?.edadMinima !== '' ? doctor.edadMinima : docConfig.edadMinima;
       const edadMax = doctor?.edadMaxima !== undefined && doctor?.edadMaxima !== null && doctor?.edadMaxima !== '' ? doctor.edadMaxima : docConfig.edadMaxima;
 
+      let docNombre = doctor?.nombreEmpleado || doctor?.nombre || '';
+      if (docNombre && !docNombre.startsWith('Dr.') && !docNombre.startsWith('Dra.')) {
+        docNombre = `Dr./Dra. ${docNombre}`;
+      }
+      const articulo = docNombre.startsWith('Dra.') ? 'La' : docNombre.startsWith('Dr.') ? 'El' : 'El/La profesional';
+
       if (edadMin !== undefined && edadMin !== null && edadMin !== '' && edadPaciente !== undefined && edadPaciente < Number(edadMin)) {
-        toast.error(`La ${doctor?.nombreEmpleado || 'médico'} sólo atiende pacientes a partir de los ${edadMin} años (tu edad registrada es ${edadPaciente} años).`);
+        toast.error(`${articulo} ${docNombre || 'médico/a'} sólo atiende a pacientes a partir de los ${edadMin} años (su edad registrada es de ${edadPaciente} años).`);
         setSubmitting(false);
         return;
       }
 
       if (edadMax !== undefined && edadMax !== null && edadMax !== '' && edadPaciente !== undefined && edadPaciente > Number(edadMax)) {
-        toast.error(`La ${doctor?.nombreEmpleado || 'médico'} sólo atiende pacientes de hasta ${edadMax} años (tu edad registrada es ${edadPaciente} años).`);
+        toast.error(`${articulo} ${docNombre || 'médico/a'} sólo atiende a pacientes de hasta ${edadMax} años (su edad registrada es de ${edadPaciente} años).`);
         setSubmitting(false);
         return;
       }
@@ -213,7 +219,7 @@ export default function PacienteDashboard() {
       });
 
       if (tienePendienteMismaEsp) {
-        toast.error(`Ya tenés un turno en estado PENDIENTE para la especialidad "${espNombre}".`);
+        toast.error(`Ya posee un turno registrado en estado PENDIENTE para la especialidad "${espNombre}".`);
         setSubmitting(false);
         return;
       }
@@ -229,7 +235,7 @@ export default function PacienteDashboard() {
       });
 
       if (tieneSolapamiento) {
-        toast.error('El horario seleccionado se solapa con otro turno que ya tenés reservado.');
+        toast.error('El horario seleccionado se solapa con otro turno previamente reservado.');
         setSubmitting(false);
         return;
       }
